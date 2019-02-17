@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 namespace GoNorth.Controllers.Api
 {
     /// <summary>
-    /// User Api controller
+    /// Project Api controller
     /// </summary>
     [Authorize(Roles = RoleNames.Administrator)]
     [Route("/api/[controller]/[action]")]
@@ -157,6 +157,7 @@ namespace GoNorth.Controllers.Api
         /// Returns all project entries
         /// </summary>
         /// <returns>Project Entries</returns>
+        [Produces(typeof(List<GoNorthProject>))]
         [HttpGet]
         public async Task<IActionResult> Entries()
         {
@@ -170,6 +171,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="project">Project to create</param>
         /// <returns>Result</returns>
+        [Produces(typeof(string))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateProject([FromBody]GoNorthProject project)
@@ -193,10 +195,11 @@ namespace GoNorth.Controllers.Api
         }
 
         /// <summary>
-        /// Deletes a user
+        /// Deletes a project
         /// </summary>
-        /// <param name="id">Id of the user</param>
+        /// <param name="id">Id of the project</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]        
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteProject(string id)
@@ -304,6 +307,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Project Id</param>
         /// <param name="project">Update project data</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateProject(string id, [FromBody]GoNorthProject project)

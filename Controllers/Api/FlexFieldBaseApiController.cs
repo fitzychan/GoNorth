@@ -17,6 +17,7 @@ using GoNorth.Data.FlexFieldDatabase;
 using GoNorth.Services.ImplementationStatusCompare;
 using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Exporting;
+using GoNorth.Services.Security;
 
 namespace GoNorth.Controllers.Api
 {
@@ -189,6 +190,11 @@ namespace GoNorth.Controllers.Api
         private readonly ILanguageKeyDbAccess _languageKeyDbAccess;
 
         /// <summary>
+        /// Export Function Id Db Access
+        /// </summary>
+        private readonly IExportFunctionIdDbAccess _exportFunctionIdDbAccess;
+
+        /// <summary>
         /// Image Access
         /// </summary>
         private readonly IFlexFieldObjectImageAccess _imageAccess;
@@ -214,6 +220,11 @@ namespace GoNorth.Controllers.Api
         private readonly UserManager<GoNorthUser> _userManager;
 
         /// <summary>
+        /// Xss Checker
+        /// </summary>
+        private readonly IXssChecker _xssChecker;
+
+        /// <summary>
         /// Logger
         /// </summary>
         protected readonly ILogger _logger;
@@ -233,16 +244,18 @@ namespace GoNorth.Controllers.Api
         /// <param name="tagDbAccess">Tag Db Access</param>
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
+        /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
         /// <param name="imageAccess">Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="userManager">User Manager</param>
         /// <param name="implementationStatusComparer">Implementation Status Comparer</param>
         /// <param name="timelineService">Timeline Service</param>
+        /// <param name="xssChecker">Xss Checker</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public FlexFieldBaseApiController(IFlexFieldFolderDbAccess folderDbAccess, IFlexFieldObjectDbAccess<T> templateDbAccess, IFlexFieldObjectDbAccess<T> objectDbAccess, IProjectDbAccess projectDbAccess, IFlexFieldObjectTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, 
-                                          ILanguageKeyDbAccess languageKeyDbAccess, IFlexFieldObjectImageAccess imageAccess, IFlexFieldThumbnailService thumbnailService, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, 
-                                          ILogger<FlexFieldBaseApiController<T>> logger, IStringLocalizerFactory localizerFactory)
+                                          ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IFlexFieldObjectImageAccess imageAccess, IFlexFieldThumbnailService thumbnailService, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, 
+                                          ITimelineService timelineService, IXssChecker xssChecker, ILogger<FlexFieldBaseApiController<T>> logger, IStringLocalizerFactory localizerFactory)
         {
             _folderDbAccess = folderDbAccess;
             _templateDbAccess = templateDbAccess;
@@ -251,11 +264,13 @@ namespace GoNorth.Controllers.Api
             _tagDbAccess = tagDbAccess;
             _exportTemplateDbAccess = exportTemplateDbAccess;
             _languageKeyDbAccess = languageKeyDbAccess;
+            _exportFunctionIdDbAccess = exportFunctionIdDbAccess;
             _imageAccess = imageAccess;
             _thumbnailService = thumbnailService;
             _userManager = userManager;
             _implementationStatusComparer = implementationStatusComparer;
             _timelineService = timelineService;
+            _xssChecker = xssChecker;
             _logger = logger;
             _localizer = localizerFactory.Create(this.GetType());
         }
@@ -267,6 +282,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Folders</returns>
+        [Produces(typeof(FlexFieldBaseApiController<Data.Kortisto.KortistoNpc>.FolderQueryResult))] // Same for all controllers, simply use Kortisto here
         [HttpGet]
         public async Task<IActionResult> Folders(string parentId, int start, int pageSize)
         {
@@ -304,6 +320,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="folder">Folder to create</param>
         /// <returns>Result</returns>
+        [Produces(typeof(string))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFolder([FromBody]FolderRequest folder)
@@ -338,6 +355,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the folder</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFolder(string id)
@@ -389,6 +407,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Folder Id</param>
         /// <param name="folder">Update folder data</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateFolder(string id, [FromBody]FolderRequest folder)
@@ -419,6 +438,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the flex field folder</param>
         /// <returns>Image Name</returns>
+        [Produces(typeof(string))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadFolderImage(string id)
@@ -514,6 +534,18 @@ namespace GoNorth.Controllers.Api
         }
 
         /// <summary>
+        /// Checks for xss attacks in an object
+        /// </summary>
+        /// <param name="checkObject">Object to check</param>
+        private void CheckXssForObject(T checkObject)
+        {
+            foreach(FlexField curField in checkObject.Fields)
+            {
+                _xssChecker.CheckXss(curField.Value);
+            }
+        }
+
+        /// <summary>
         /// Creates a new flex field template
         /// </summary>
         /// <param name="template">Template to create</param>
@@ -524,6 +556,8 @@ namespace GoNorth.Controllers.Api
             {
                 return StatusCode((int)HttpStatusCode.BadRequest);
             }
+
+            CheckXssForObject(template);
             
             if(FlexFieldApiUtil.HasDuplicateFieldNames(template.Fields))
             {
@@ -614,6 +648,8 @@ namespace GoNorth.Controllers.Api
             {
                 return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
             }
+
+            CheckXssForObject(template);
 
             T loadedTemplate = await _templateDbAccess.GetFlexFieldObjectById(id);
             List<string> oldTags = loadedTemplate.Tags;
@@ -799,6 +835,8 @@ namespace GoNorth.Controllers.Api
                 return StatusCode((int)HttpStatusCode.BadRequest);
             }
 
+            CheckXssForObject(flexFieldObject);
+
             if(FlexFieldApiUtil.HasDuplicateFieldNames(flexFieldObject.Fields))
             {
                 return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
@@ -852,6 +890,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the flex field object</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFlexFieldObject(string id)
@@ -869,6 +908,7 @@ namespace GoNorth.Controllers.Api
             _logger.LogInformation("Flex Field was deleted.");
 
             await _languageKeyDbAccess.DeleteAllLanguageKeysInGroup(flexFieldObject.ProjectId, flexFieldObject.Id);
+            await _exportFunctionIdDbAccess.DeleteAllExportFunctionIdsForObject(flexFieldObject.ProjectId, flexFieldObject.Id);
 
             await DeleteAdditionalFlexFieldObjectDependencies(flexFieldObject);
 
@@ -940,6 +980,8 @@ namespace GoNorth.Controllers.Api
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateFlexFieldObject(string id, [FromBody]T flexFieldObject)
         {
+            CheckXssForObject(flexFieldObject);
+
             T loadedFlexFieldObject = await _objectDbAccess.GetFlexFieldObjectById(id);
             
             List<string> oldTags = loadedFlexFieldObject.Tags;
@@ -995,6 +1037,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the flex field object</param>
         /// <returns>Image Name</returns>
+        [Produces(typeof(string))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FlexFieldImageUpload(string id)
@@ -1110,6 +1153,8 @@ namespace GoNorth.Controllers.Api
         /// Returns all flex field object Tags
         /// </summary>
         /// <returns>All flex field object Tags</returns>
+        [Produces(typeof(List<string>))]
+        [HttpGet]
         public async Task<IActionResult> FlexFieldObjectTags()
         {
             List<string> allTags = await _tagDbAccess.GetAllTags();

@@ -25,6 +25,7 @@ using GoNorth.Services.ImplementationStatusCompare;
 using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Karta.Marker;
 using GoNorth.Data.Exporting;
+using GoNorth.Services.Security;
 
 namespace GoNorth.Controllers.Api
 {
@@ -133,6 +134,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="tagDbAccess">Tag Db Access</param>
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
+        /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
         /// <param name="imageAccess">Item Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="aikaQuestDbAccess">Aika Quest Db Access</param>
@@ -143,12 +145,15 @@ namespace GoNorth.Controllers.Api
         /// <param name="userManager">User Manager</param>
         /// <param name="implementationStatusComparer">Implementation Status Comparer</param>
         /// <param name="timelineService">Timeline Service</param>
+        /// <param name="xssChecker">Xss Checker</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public StyrApiController(IStyrFolderDbAccess folderDbAccess, IStyrItemTemplateDbAccess templateDbAccess, IStyrItemDbAccess itemDbAccess, IProjectDbAccess projectDbAccess, IStyrItemTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, 
-                                 ILanguageKeyDbAccess languageKeyDbAccess, IStyrItemImageAccess imageAccess, IStyrThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, IKartaMapDbAccess kartaMapDbAccess, 
-                                 IKortistoNpcDbAccess kortistoNpcDbAccess, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, ILogger<StyrApiController> logger, IStringLocalizerFactory localizerFactory) 
-                                  : base(folderDbAccess, templateDbAccess, itemDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, imageAccess, thumbnailService, userManager, implementationStatusComparer, timelineService, logger, localizerFactory)
+                                 ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IStyrItemImageAccess imageAccess, IStyrThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, 
+                                 IKartaMapDbAccess kartaMapDbAccess, IKortistoNpcDbAccess kortistoNpcDbAccess, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, IXssChecker xssChecker, 
+                                 ILogger<StyrApiController> logger, IStringLocalizerFactory localizerFactory) 
+                                  : base(folderDbAccess, templateDbAccess, itemDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, exportFunctionIdDbAccess, imageAccess, thumbnailService, userManager, 
+                                         implementationStatusComparer, timelineService, xssChecker, logger, localizerFactory)
         {
             _aikaQuestDbAccess = aikaQuestDbAccess;
             _taleDbAccess = taleDbAccess;
@@ -162,6 +167,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="template">Template to create</param>
         /// <returns>Result</returns>
+        [Produces(typeof(StyrItem))]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -175,6 +181,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
@@ -189,6 +196,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Template Id</param>
         /// <param name="template">Update template data</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(StyrItem))]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -202,6 +210,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Template Id</param>
         /// <returns>Task</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -215,6 +224,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Image Name</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -341,6 +351,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Items</returns>
+        [Produces(typeof(FlexFieldObjectQueryResult))]
         [Authorize(Roles = RoleNames.Styr)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [HttpGet]

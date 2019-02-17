@@ -24,6 +24,7 @@ using GoNorth.Services.ImplementationStatusCompare;
 using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Karta.Marker;
 using GoNorth.Data.Exporting;
+using GoNorth.Services.Security;
 
 namespace GoNorth.Controllers.Api
 {
@@ -127,6 +128,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="tagDbAccess">Tag Db Access</param>
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
+        /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
         /// <param name="imageAccess">Npc Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="aikaQuestDbAccess">Aika Quest Db Access</param>
@@ -136,12 +138,14 @@ namespace GoNorth.Controllers.Api
         /// <param name="userManager">User Manager</param>
         /// <param name="implementationStatusComparer">Implementation Status Comparer</param>
         /// <param name="timelineService">Timeline Service</param>
+        /// <param name="xssChecker">Xss Checker</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public KortistoApiController(IKortistoFolderDbAccess folderDbAccess, IKortistoNpcTemplateDbAccess templateDbAccess, IKortistoNpcDbAccess npcDbAccess, IProjectDbAccess projectDbAccess, IKortistoNpcTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, 
-                                     ILanguageKeyDbAccess languageKeyDbAccess, IKortistoNpcImageAccess imageAccess, IKortistoThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, 
-                                     IKartaMapDbAccess kartaMapDbAccess, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, ILogger<KortistoApiController> logger, IStringLocalizerFactory localizerFactory) 
-                                     : base(folderDbAccess, templateDbAccess, npcDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, imageAccess, thumbnailService, userManager, implementationStatusComparer, timelineService, logger, localizerFactory)
+                                     ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IKortistoNpcImageAccess imageAccess, IKortistoThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, 
+                                     IKartaMapDbAccess kartaMapDbAccess, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, IXssChecker xssChecker, ILogger<KortistoApiController> logger, IStringLocalizerFactory localizerFactory) 
+                                     : base(folderDbAccess, templateDbAccess, npcDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, exportFunctionIdDbAccess, imageAccess, thumbnailService, userManager, 
+                                            implementationStatusComparer, timelineService, xssChecker, logger, localizerFactory)
         {
             _aikaQuestDbAccess = aikaQuestDbAccess;
             _taleDbAccess = taleDbAccess;
@@ -154,6 +158,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="template">Template to create</param>
         /// <returns>Result</returns>
+        [Produces(typeof(KortistoNpc))]
         [Authorize(Roles = RoleNames.KortistoTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -167,6 +172,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.KortistoTemplateManager)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
@@ -181,6 +187,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Template Id</param>
         /// <param name="template">Update template data</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(KortistoNpc))]
         [Authorize(Roles = RoleNames.KortistoTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -194,6 +201,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Template Id</param>
         /// <returns>Task</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.KortistoTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -207,6 +215,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Image Name</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.KortistoTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -373,6 +382,7 @@ namespace GoNorth.Controllers.Api
         /// Returns the player npc
         /// </summary>
         /// <returns>Npc</returns>
+        [Produces(typeof(KortistoNpc))]
         [HttpGet]
         public async Task<IActionResult> PlayerNpc()
         {
@@ -386,6 +396,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="itemId">Item id</param>
         /// <returns>Npcs</returns>
+        [Produces(typeof(List<KortistoNpc>))]
         [HttpGet]
         public async Task<IActionResult> GetNpcsByItemInInventory(string itemId)
         {
@@ -398,6 +409,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="skillId">Skill id</param>
         /// <returns>Npcs</returns>
+        [Produces(typeof(List<KortistoNpc>))]
         [HttpGet]
         public async Task<IActionResult> GetNpcsByLearnedSkill(string skillId)
         {
@@ -412,6 +424,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Npcs</returns>
+        [Produces(typeof(FlexFieldObjectQueryResult))]
         [Authorize(Roles = RoleNames.Kortisto)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [HttpGet]

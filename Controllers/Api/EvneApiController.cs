@@ -18,6 +18,7 @@ using GoNorth.Data.Aika;
 using GoNorth.Data.Tale;
 using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Exporting;
+using GoNorth.Services.Security;
 
 namespace GoNorth.Controllers.Api
 {
@@ -122,6 +123,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="tagDbAccess">Tag Db Access</param>
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
+        /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
         /// <param name="imageAccess">Skill Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="aikaQuestDbAccess">Aika Quest Db ACcess</param>
@@ -131,12 +133,14 @@ namespace GoNorth.Controllers.Api
         /// <param name="userManager">User Manager</param>
         /// <param name="implementationStatusComparer">Implementation Status Comparer</param>
         /// <param name="timelineService">Timeline Service</param>
+        /// <param name="xssChecker">Xss Checker</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public EvneApiController(IEvneFolderDbAccess folderDbAccess, IEvneSkillTemplateDbAccess templateDbAccess, IEvneSkillDbAccess skillDbAccess, IProjectDbAccess projectDbAccess, IEvneSkillTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, ILanguageKeyDbAccess languageKeyDbAccess,
-                                 IEvneSkillImageAccess imageAccess, IEvneThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, IKortistoNpcDbAccess kortistoNpcDbAccess, UserManager<GoNorthUser> userManager, 
-                                 IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, ILogger<EvneApiController> logger, IStringLocalizerFactory localizerFactory) 
-                                     : base(folderDbAccess, templateDbAccess, skillDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, imageAccess, thumbnailService, userManager, implementationStatusComparer, timelineService, logger, localizerFactory)
+                                 IExportFunctionIdDbAccess exportFunctionIdDbAccess, IEvneSkillImageAccess imageAccess, IEvneThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, IKortistoNpcDbAccess kortistoNpcDbAccess, 
+                                 UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, IXssChecker xssChecker, ILogger<EvneApiController> logger, IStringLocalizerFactory localizerFactory) 
+                                     : base(folderDbAccess, templateDbAccess, skillDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, exportFunctionIdDbAccess, imageAccess, thumbnailService, userManager, 
+                                            implementationStatusComparer, timelineService, xssChecker, logger, localizerFactory)
         {
             _aikaQuestDbAccess = aikaQuestDbAccess;
             _taleDbAccess = taleDbAccess;
@@ -149,6 +153,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="template">Template to create</param>
         /// <returns>Result</returns>
+        [Produces(typeof(EvneSkill))]
         [Authorize(Roles = RoleNames.EvneTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -162,6 +167,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.EvneTemplateManager)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
@@ -176,6 +182,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Template Id</param>
         /// <param name="template">Update template data</param>
         /// <returns>Result Status Code</returns>
+        [Produces(typeof(EvneSkill))]
         [Authorize(Roles = RoleNames.EvneTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -189,6 +196,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Template Id</param>
         /// <returns>Task</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.EvneTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -202,6 +210,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Image Name</returns>
+        [Produces(typeof(string))]
         [Authorize(Roles = RoleNames.EvneTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -303,6 +312,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Skills</returns>
+        [Produces(typeof(FlexFieldObjectQueryResult))]
         [Authorize(Roles = RoleNames.Evne)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [HttpGet]

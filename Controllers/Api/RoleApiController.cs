@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoNorth.Controllers.Api
 {
     /// <summary>
-    /// User Api controller
+    /// Role Api controller
     /// </summary>
     [Authorize(Roles = RoleNames.Administrator)]
     [Route("/api/[controller]/[action]")]
@@ -14,6 +15,7 @@ namespace GoNorth.Controllers.Api
         /// Returns the available roles
         /// </summary>
         /// <returns>Available Roles</returns>
+        [Produces(typeof(List<string>))]
         [HttpGet]
         public IActionResult AvailableRoles()
         {
