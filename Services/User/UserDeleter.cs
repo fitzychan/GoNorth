@@ -9,13 +9,13 @@ using GoNorth.Data.Karta;
 using GoNorth.Data.Kirja;
 using GoNorth.Data.Kortisto;
 using GoNorth.Data.LockService;
+using GoNorth.Data.ProjectConfig;
 using GoNorth.Data.Styr;
 using GoNorth.Data.Tale;
 using GoNorth.Data.TaskManagement;
 using GoNorth.Data.Timeline;
 using GoNorth.Data.User;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 
 namespace GoNorth.Services.User
 {
@@ -28,6 +28,11 @@ namespace GoNorth.Services.User
         /// Quest Db Access
         /// </summary>
         private readonly IAikaQuestDbAccess _questDbAccess;
+
+        /// <summary>
+        /// Quest Implementation Snapshot Db Access
+        /// </summary>
+        private readonly IAikaQuestImplementationSnapshotDbAccess _questImplementationSnapshotDbAccess;
 
         /// <summary>
         /// Chapter Detail Db Access
@@ -45,9 +50,29 @@ namespace GoNorth.Services.User
         private readonly IEvneSkillDbAccess _skillDbAccess;
 
         /// <summary>
+        /// Skill Template Db Access
+        /// </summary>
+        private readonly IEvneSkillTemplateDbAccess _skillTemplateDbAccess;
+
+        /// <summary>
+        /// Skill Implementation Snapshot Db Access
+        /// </summary>
+        private readonly IEvneSkillImplementationSnapshotDbAccess _skillImplementationSnapshotDbAccess;
+
+        /// <summary>
         /// Npc Db Access
         /// </summary>
         private readonly IKortistoNpcDbAccess _npcDbAccess;
+
+        /// <summary>
+        /// Npc Template Db Access
+        /// </summary>
+        private readonly IKortistoNpcTemplateDbAccess _npcTemplateDbAccess;
+
+        /// <summary>
+        /// Npc Implementation Snapshot Db Access
+        /// </summary>
+        private readonly IKortistoNpcImplementationSnapshotDbAccess _npcImplementationSnapshotDbAccess;
 
         /// <summary>
         /// Item Db Access
@@ -55,9 +80,24 @@ namespace GoNorth.Services.User
         private readonly IStyrItemDbAccess _itemDbAccess;
 
         /// <summary>
+        /// Item Template Db Access
+        /// </summary>
+        private readonly IStyrItemTemplateDbAccess _itemTemplateDbAccess;
+
+        /// <summary>
+        /// Item Implementation Snapshot Db Access
+        /// </summary>
+        private readonly IStyrItemImplementationSnapshotDbAccess _itemImplementationSnapshotDbAccess;
+
+        /// <summary>
         /// Export Template Db Access
         /// </summary>
         private readonly IExportTemplateDbAccess _exportTemplateDbAccess;
+
+        /// <summary>
+        /// Object Export Snippet Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetDbAccess _objectExportSnippetDbAccess;
 
         /// <summary>
         /// Map Db Access
@@ -80,9 +120,14 @@ namespace GoNorth.Services.User
         private readonly ITaleDbAccess _taleDbAccess;
 
         /// <summary>
-        /// Tale Config Db Access
+        /// Tale Implementation Snapshot Db Access
         /// </summary>
-        private readonly ITaleConfigDbAccess _taleConfigDbAccess;
+        private readonly ITaleDialogImplementationSnapshotDbAccess _taleImplementationSnapshotDbAccess;
+
+        /// <summary>
+        /// Project Config Db Access
+        /// </summary>
+        private readonly IProjectConfigDbAccess _projectConfigDbAccess;
 
         /// <summary>
         /// Task Board Db Access
@@ -123,17 +168,26 @@ namespace GoNorth.Services.User
         /// Constructor
         /// </summary>
         /// <param name="questDbAccess">Quest Db Access</param>
+        /// <param name="questImplementationSnapshotDbAccess">Quest Implementation Snapshot Db Access</param>
         /// <param name="chapterDetailDbAccess">Chapter Detail Db Access</param>
         /// <param name="chapterOverviewDbAccess">Chapter Overview Db Access</param>
         /// <param name="skillDbAccess">Skill Db Access</param>
+        /// <param name="skillTemplateDbAccess">Skill Template Db Access</param>
+        /// <param name="skillImplementationSnapshotDbAccess">Skill Implementation Snapshot Db Access</param>
         /// <param name="npcDbAccess">Npc Db Access</param>
+        /// <param name="npcTemplateDbAccess">Npc Template Db Access</param>
+        /// <param name="npcImplementationSnapshotDbAccess">Npc Implementation Snapshot Db Access</param>
         /// <param name="itemDbAccess">Item Db Access</param>
+        /// <param name="itemTemplateDbAccess">Item Template Db Access</param>
+        /// <param name="itemImplementationSnapshotDbAccess">Item Implementation Snapshot Db Access</param>
         /// <param name="exportTemplateDbAccess">Export template Db access</param>
+        /// <param name="objectExportSnippetDbAccess">Object Export snippet Db Access</param>
         /// <param name="mapDbAccess">Map Db Access</param>
         /// <param name="pageDbAccess">Page Db Access</param>
         /// <param name="pageVersionDbAccess">Page Version Db Access</param>
         /// <param name="taleDbAccess">Tale Db Access</param>
-        /// <param name="taleConfigDbAccess">Tale Config Db Access</param>
+        /// <param name="taleImplementationSnapshotDbAccess">Tale Implementation Snapshot Db Access</param>
+        /// <param name="projectConfigDbAccess">Project Config Db Access</param>
         /// <param name="taskBoardDbAccess">Task Bord Db Access</param>
         /// <param name="taskGroupTypeDbAccess">Task Group Type Db Access</param>
         /// <param name="taskTypeDbAccess">Task Type Db Access</param>
@@ -141,23 +195,34 @@ namespace GoNorth.Services.User
         /// <param name="lockDbService">Lock Db Service</param>
         /// <param name="timelineDbAccess">Timeline Db Access</param>
         /// <param name="userManager">User manager</param>
-        public UserDeleter(IAikaQuestDbAccess questDbAccess, IAikaChapterDetailDbAccess chapterDetailDbAccess, IAikaChapterOverviewDbAccess chapterOverviewDbAccess, IEvneSkillDbAccess skillDbAccess, IKortistoNpcDbAccess npcDbAccess, 
-                           IStyrItemDbAccess itemDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, IKartaMapDbAccess mapDbAccess, IKirjaPageDbAccess pageDbAccess, IKirjaPageVersionDbAccess pageVersionDbAccess, ITaleDbAccess taleDbAccess, 
-                           ITaleConfigDbAccess taleConfigDbAccess, ITaskBoardDbAccess taskBoardDbAccess, ITaskGroupTypeDbAccess taskGroupTypeDbAccess, ITaskTypeDbAccess taskTypeDbAccess, IUserTaskBoardHistoryDbAccess userTaskBoardHistoryDbAccess, 
-                           ILockServiceDbAccess lockDbService, ITimelineDbAccess timelineDbAccess, UserManager<GoNorthUser> userManager)
+        public UserDeleter(IAikaQuestDbAccess questDbAccess, IAikaQuestImplementationSnapshotDbAccess questImplementationSnapshotDbAccess, IAikaChapterDetailDbAccess chapterDetailDbAccess, IAikaChapterOverviewDbAccess chapterOverviewDbAccess, IEvneSkillDbAccess skillDbAccess, 
+                           IEvneSkillTemplateDbAccess skillTemplateDbAccess, IEvneSkillImplementationSnapshotDbAccess skillImplementationSnapshotDbAccess, IKortistoNpcDbAccess npcDbAccess, IKortistoNpcTemplateDbAccess npcTemplateDbAccess, IKortistoNpcImplementationSnapshotDbAccess npcImplementationSnapshotDbAccess, 
+                           IStyrItemDbAccess itemDbAccess, IStyrItemTemplateDbAccess itemTemplateDbAccess, IStyrItemImplementationSnapshotDbAccess itemImplementationSnapshotDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, IObjectExportSnippetDbAccess objectExportSnippetDbAccess, 
+                           IKartaMapDbAccess mapDbAccess, IKirjaPageDbAccess pageDbAccess, IKirjaPageVersionDbAccess pageVersionDbAccess, ITaleDbAccess taleDbAccess, ITaleDialogImplementationSnapshotDbAccess taleImplementationSnapshotDbAccess, IProjectConfigDbAccess projectConfigDbAccess, 
+                           ITaskBoardDbAccess taskBoardDbAccess, ITaskGroupTypeDbAccess taskGroupTypeDbAccess, ITaskTypeDbAccess taskTypeDbAccess, IUserTaskBoardHistoryDbAccess userTaskBoardHistoryDbAccess, ILockServiceDbAccess lockDbService, ITimelineDbAccess timelineDbAccess, 
+                           UserManager<GoNorthUser> userManager)
         {
             _questDbAccess = questDbAccess;
+            _questImplementationSnapshotDbAccess = questImplementationSnapshotDbAccess;
             _chapterDetailDbAccess = chapterDetailDbAccess;
             _chapterOverviewDbAccess = chapterOverviewDbAccess;
             _skillDbAccess = skillDbAccess;
+            _skillTemplateDbAccess = skillTemplateDbAccess;
+            _skillImplementationSnapshotDbAccess = skillImplementationSnapshotDbAccess;
             _npcDbAccess = npcDbAccess;
+            _npcTemplateDbAccess = npcTemplateDbAccess;
+            _npcImplementationSnapshotDbAccess = npcImplementationSnapshotDbAccess;
             _itemDbAccess = itemDbAccess;
+            _itemTemplateDbAccess = itemTemplateDbAccess;
+            _itemImplementationSnapshotDbAccess = itemImplementationSnapshotDbAccess;
             _exportTemplateDbAccess = exportTemplateDbAccess;
+            _objectExportSnippetDbAccess = objectExportSnippetDbAccess;
             _mapDbAccess = mapDbAccess;
             _pageDbAccess = pageDbAccess;
             _pageVersionDbAccess = pageVersionDbAccess;
             _taleDbAccess = taleDbAccess;
-            _taleConfigDbAccess = taleConfigDbAccess;
+            _taleImplementationSnapshotDbAccess = taleImplementationSnapshotDbAccess;
+            _projectConfigDbAccess = projectConfigDbAccess;
             _taskBoardDbAccess = taskBoardDbAccess;
             _taskGroupTypeDbAccess = taskGroupTypeDbAccess;
             _taskTypeDbAccess = taskTypeDbAccess;
@@ -199,6 +264,10 @@ namespace GoNorth.Services.User
                 await _questDbAccess.UpdateQuest(curQuest);
             }
 
+            await _questDbAccess.ResetRecycleBinQuestByModifiedUser(user.Id);
+
+            await _questImplementationSnapshotDbAccess.ResetSnapshotsByModifiedUser(user.Id);
+
             List<AikaChapterDetail> chapterDetail = await _chapterDetailDbAccess.GetChapterDetailsByModifiedUser(user.Id);
             foreach(AikaChapterDetail curChapterDetail in chapterDetail)
             {
@@ -206,6 +275,8 @@ namespace GoNorth.Services.User
                 curChapterDetail.ModifiedOn = DateTimeOffset.UtcNow;
                 await _chapterDetailDbAccess.UpdateChapterDetail(curChapterDetail);
             }
+
+            await _chapterDetailDbAccess.ResetRecycleBinChapterDetailsByModifiedUser(user.Id);
 
             List<AikaChapterOverview> chapterOverview = await _chapterOverviewDbAccess.GetChapterOverviewByModifiedUser(user.Id);
             foreach(AikaChapterOverview curOverview in chapterOverview)
@@ -215,6 +286,8 @@ namespace GoNorth.Services.User
                 await _chapterOverviewDbAccess.UpdateChapterOverview(curOverview);
             }
 
+            await _chapterOverviewDbAccess.ResetRecycleBinChapterOverviewByModifiedUser(user.Id);
+
             List<EvneSkill> skills = await _skillDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
             foreach(EvneSkill curSkill in skills)
             {
@@ -223,6 +296,20 @@ namespace GoNorth.Services.User
                 await _skillDbAccess.UpdateFlexFieldObject(curSkill);
             }
 
+            await _skillDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
+            await _skillImplementationSnapshotDbAccess.ResetSnapshotsByModifiedUser(user.Id);
+
+            List<EvneSkill> skillTemplates = await _skillTemplateDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
+            foreach(EvneSkill curSkill in skillTemplates)
+            {
+                curSkill.ModifiedBy = Guid.Empty.ToString();
+                curSkill.ModifiedOn = DateTimeOffset.UtcNow;
+                await _skillTemplateDbAccess.UpdateFlexFieldObject(curSkill);
+            }
+
+            await _skillTemplateDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
             List<KortistoNpc> npcs = await _npcDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
             foreach(KortistoNpc curNpc in npcs)
             {
@@ -230,6 +317,20 @@ namespace GoNorth.Services.User
                 curNpc.ModifiedOn = DateTimeOffset.UtcNow;
                 await _npcDbAccess.UpdateFlexFieldObject(curNpc);
             }
+            
+            await _npcDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
+            await _npcImplementationSnapshotDbAccess.ResetSnapshotsByModifiedUser(user.Id);
+            
+            List<KortistoNpc> npcTemplates = await _npcTemplateDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
+            foreach(KortistoNpc curNpc in npcTemplates)
+            {
+                curNpc.ModifiedBy = Guid.Empty.ToString();
+                curNpc.ModifiedOn = DateTimeOffset.UtcNow;
+                await _npcTemplateDbAccess.UpdateFlexFieldObject(curNpc);
+            }
+            
+            await _npcTemplateDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
 
             List<StyrItem> items = await _itemDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
             foreach(StyrItem curItem in items)
@@ -239,6 +340,20 @@ namespace GoNorth.Services.User
                 await _itemDbAccess.UpdateFlexFieldObject(curItem);
             }
 
+            await _itemDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
+            await _itemImplementationSnapshotDbAccess.ResetSnapshotsByModifiedUser(user.Id);
+
+            List<StyrItem> itemTemplates = await _itemTemplateDbAccess.GetFlexFieldObjectsByModifiedUser(user.Id);
+            foreach(StyrItem curItem in itemTemplates)
+            {
+                curItem.ModifiedBy = Guid.Empty.ToString();
+                curItem.ModifiedOn = DateTimeOffset.UtcNow;
+                await _itemTemplateDbAccess.UpdateFlexFieldObject(curItem);
+            }
+
+            await _itemTemplateDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
             List<ExportTemplate> exportTemplates = await _exportTemplateDbAccess.GetExportTemplatesByModifiedUser(user.Id);
             foreach(ExportTemplate curTemplate in exportTemplates)
             {
@@ -246,7 +361,17 @@ namespace GoNorth.Services.User
                 curTemplate.ModifiedOn = DateTimeOffset.UtcNow;
                 await _exportTemplateDbAccess.UpdateTemplate(curTemplate);
             }
+
+            await _exportTemplateDbAccess.ResetRecycleBinExportTemplatesByModifiedUser(user.Id);
             
+            List<ObjectExportSnippet> objectExportSnippets = await _objectExportSnippetDbAccess.GetExportSnippetByModifiedUser(user.Id);
+            foreach(ObjectExportSnippet curExportSnippet in objectExportSnippets)
+            {
+                curExportSnippet.ModifiedBy = Guid.Empty.ToString();
+                curExportSnippet.ModifiedOn = DateTimeOffset.UtcNow;
+                await _objectExportSnippetDbAccess.UpdateExportSnippet(curExportSnippet);
+            }
+
             List<KartaMap> maps = await _mapDbAccess.GetMapsByModifiedUser(user.Id);
             foreach(KartaMap curMap in maps)
             {
@@ -279,12 +404,24 @@ namespace GoNorth.Services.User
                 await _taleDbAccess.UpdateDialog(curDialog);
             }
 
-            List<TaleConfigEntry> taleConfigEntries = await _taleConfigDbAccess.GetConfigEntriesByModifiedUser(user.Id);
-            foreach(TaleConfigEntry curConfig in taleConfigEntries)
+            await _taleDbAccess.ResetRecycleBinFlexFieldObjectsByModifiedUser(user.Id);
+
+            await _taleImplementationSnapshotDbAccess.ResetSnapshotsByModifiedUser(user.Id);
+
+            List<JsonConfigEntry> jsonConfigEntries = await _projectConfigDbAccess.GetJsonConfigEntriesByModifiedUser(user.Id);
+            foreach(JsonConfigEntry curConfig in jsonConfigEntries)
             {
                 curConfig.ModifiedBy = Guid.Empty.ToString();
                 curConfig.ModifiedOn = DateTimeOffset.UtcNow;
-                await _taleConfigDbAccess.UpdateConfig(curConfig);
+                await _projectConfigDbAccess.UpdateJsonConfig(curConfig);
+            }
+
+            List<MiscProjectConfig> miscConfigEntries = await _projectConfigDbAccess.GetMiscConfigEntriesByModifiedUser(user.Id);
+            foreach(MiscProjectConfig curMiscConfig in miscConfigEntries)
+            {
+                curMiscConfig.ModifiedBy = Guid.Empty.ToString();
+                curMiscConfig.ModifiedOn = DateTimeOffset.UtcNow;
+                await _projectConfigDbAccess.UpdateMiscConfig(curMiscConfig);
             }
 
             List<TaskBoard> taskBoards = await _taskBoardDbAccess.GetTaskBoardsByModifiedUser(user.Id);

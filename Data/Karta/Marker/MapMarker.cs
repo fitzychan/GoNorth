@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using GoNorth.Data.ImplementationSnapshot;
 using GoNorth.Services.ImplementationStatusCompare;
@@ -50,6 +49,12 @@ namespace GoNorth.Data.Karta.Marker
         /// </summary>
         [ListCompareAttribute(LabelKey = "MarkerGeometryChanged")]
         public List<MarkerGeometry> Geometry { get; set; }
+
+        /// <summary>
+        /// Script export name
+        /// </summary>
+        [ValueCompareAttribute]
+        public string ExportName { get; set; }
 
 
         /// <summary>

@@ -14,5 +14,14 @@
     "Confirm": "Confirm",
     "Cancel": "Cancel",
 
+    "MinValue": "Minimal value",
+    "MaxValue": "Maximal value",
+    "CompareValue": "Compare value",
+
+    "CompareTime": "Compare time",
+    "TimeFormat": "hh:mm",
+
+    "EditScript": "&lt;Edit script&gt;",
+
     "ErrorOccured": "An error occured."
 }

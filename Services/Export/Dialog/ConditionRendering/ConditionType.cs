@@ -44,6 +44,11 @@ namespace GoNorth.Services.Export.Dialog.ConditionRendering
         /// Condition to check if a certain npc is alive or dead
         /// </summary>
         NpcAliveStateCondition = 9,
+
+        /// <summary>
+        /// Condition to check the current skill value
+        /// </summary>
+        CurrentSkillValueCondition = 11,
         
         /// <summary>
         /// Game Time Condition
@@ -78,6 +83,31 @@ namespace GoNorth.Services.Export.Dialog.ConditionRendering
         /// <summary>
         /// Npc not learned skill Condition
         /// </summary>
-        NpcNotLearnedSkillCondition = 18
+        NpcNotLearnedSkillCondition = 18,
+        
+        /// <summary>
+        /// Random value compare condition
+        /// </summary>
+        RandomValueCondition = 19,
+        
+        /// <summary>
+        /// Daily routine event is enabled condition
+        /// </summary>
+        DailyRoutineEventIsEnabledCondition = 20,
+        
+        /// <summary>
+        /// Daily routine event is disabled condition
+        /// </summary>
+        DailyRoutineEventIsDisabledCondition = 21,
+
+        /// <summary>
+        /// Code condition resolver
+        /// </summary>
+        CodeCondition = 22,
+
+        /// <summary>
+        /// Item value condition resolver
+        /// </summary>
+        ItemValueCondition = 23
     }
 }

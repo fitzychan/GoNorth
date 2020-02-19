@@ -37,6 +37,11 @@ namespace GoNorth.Services.Export
         /// </summary>
         public const string ExportDataDialog = "Dialog";
 
+        /// <summary>
+        /// Key for referenced language ids
+        /// </summary>
+        public const string ExportDataReferencedLanguageIds = "ReferencedLanguageIds";
+
 
         /// <summary>
         /// Export Object Type for npcs
@@ -84,5 +89,43 @@ namespace GoNorth.Services.Export
         /// Id of the condition else node child id
         /// </summary>
         public const int ConditionElseNodeChildId = -1;
+
+
+        /// <summary>
+        /// Language key for npc
+        /// </summary>
+        public const string LanguageKeyTypeNpc = "npc";
+
+        /// <summary>
+        /// Language key for player
+        /// </summary>
+        public const string LanguageKeyTypePlayer = "player";
+
+        /// <summary>
+        /// Language key for quest
+        /// </summary>
+        public const string LanguageKeyTypeQuest = "quest";
+
+
+        /// <summary>
+        /// Export Snippet Regex
+        /// </summary>
+        public const string ExportSnippetRegex = "CodeSnippet_(.*?)";
+
+
+        /// <summary>
+        /// Script Type none
+        /// </summary>
+        public const int ScriptType_None = -1;
+
+        /// <summary>
+        /// Script Type node graph
+        /// </summary>
+        public const int ScriptType_NodeGraph = 0;
+
+        /// <summary>
+        /// Script Type code
+        /// </summary>
+        public const int ScriptType_Code = 1;
     }
 }        

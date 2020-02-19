@@ -45,7 +45,13 @@ footer {
 }
 
 /** Navbar Collapse **/
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 1200px) and (max-width: 1600px) {
+	.navbar-nav > li > a {
+		font-size: 12px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
 	.navbar-nav .open .dropdown-menu {
 		position: static;
 		float: none;
@@ -255,8 +261,21 @@ footer {
     margin-left: 20px;
 }
 
+.gn-chooseObjectDialog {
+    z-index: 1100;
+}
+
 .gn-chooseObjectDialogTable {
     margin-top: 15px;
+}
+
+.gn-chooseObjectDialogExpandedObjectsContainer {
+    padding-left: 20px;
+}
+
+.gn-chooseObjectDialogExpandedObjectsRow {
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .gn-richTextEditorSubHeader {
@@ -392,6 +411,12 @@ footer {
     border: 1px solid #010022;
 }
 
+.gn-projectSettingsTile {
+    color: #FFFFFF;
+    background-color: #330009;
+    border: 1px solid #47000d;
+}
+
 .gn-copyToClipboardToolTipContainer {
     position: relative;
     display: inline-block;
@@ -489,13 +514,7 @@ footer {
     margin-top: 25px;
 }
 
-.gn-flexFieldOverviewObjectImageContainer {
-    height: 112px;
-    margin-bottom: 5px;
-    margin-top: 5px;
-}
-
-.gn-flexFieldOverviewFolderImageContainer {
+.gn-flexFieldOverviewTileImageContainer {
     height: 93px;
     margin-top: -5px;
     margin-bottom: 10px;
@@ -528,6 +547,98 @@ footer {
     box-shadow: 0px 0px 30px -8px rgba(200,200,200,1);
 }
 
+.gn-flexFieldObjectRow {
+    margin-left: -9px;
+    margin-right: -9px;
+}
+
+.gn-flexFieldOverviewTileObjectHovering {
+    outline: 2px dashed rgb(128, 128, 128);
+}
+
+.gn-flexFieldOverviewTileDropToParent {
+    background-color: #FAFAFA;
+    border: 1px solid #DCDCDC;
+    text-align: center;
+    -webkit-box-shadow: 0px 0px 30px -8px rgba(200,200,200,1);
+    -moz-box-shadow: 0px 0px 30px -8px rgba(200,200,200,1);
+    box-shadow: 0px 0px 30px -8px rgba(200,200,200,1);
+    margin-top: 10px;
+    height: 82px;
+    font-size: 50px;
+    padding-top: 5px;
+    padding-left: 10px;
+}
+
+.gn-flexFieldMoveObjectDialogListExpandIndicator {
+    width: 15px;
+    display: inline-block;
+}
+
+.gn-flexFieldMoveObjectDialogListActive {
+    background-color: #EEEEEE;
+}
+
+.gn-flexFieldMoveObjectDialogListCurrentFolderIndicator {
+    font-style: italic;
+}
+
+.gn-flexFieldMoveObjectDialogListRootLevel {
+    padding-left: 10px !important;
+}
+
+.gn-flexFieldMoveObjectDialogList {
+    list-style: none;
+    padding-left: 15px;
+}
+
+.gn-flexFieldMoveObjectDialogListEntry {
+    padding: 5px;
+}
+
+@media(min-width:768px) {
+    .gn-flexFieldOverviewTileDropToParent {
+        float: right;
+        width: 125px;
+        margin-top: -40px;
+    }
+}
+
+.gn-flexFieldMoveObjectDialogContent {
+    overflow-y: auto;
+    max-height: 150px;
+}
+
+@media(min-height:400px) {
+    .gn-flexFieldMoveObjectDialogContent {
+        max-height: 210px;
+    }
+}
+
+@media(min-height:550px) {
+    .gn-flexFieldMoveObjectDialogContent {
+        max-height: 320px;
+    }
+}
+
+@media(min-height:700px) {
+    .gn-flexFieldMoveObjectDialogContent {
+        max-height: 500px;
+    }
+}
+
+@media(min-height:900px) {
+    .gn-flexFieldMoveObjectDialogContent {
+        max-height: 700px;
+    }
+}
+
+@media(min-height:1200px) {
+    .gn-flexFieldMoveObjectDialogContent {
+        max-height: 1000px;
+    }
+}
+
 .gn-flexFieldOverviewFolderDropzone {
     width: 100%;
     height: 165px;
@@ -545,7 +656,7 @@ footer {
     pointer-events: none;
 }
 
-.gn-flexFieldOverviewFolderButtons {
+.gn-flexFieldOverviewObjectButtons {
     height: 25px;
     width: 100%;
     text-align: right;
@@ -677,6 +788,10 @@ footer {
 .gn-flexFieldObjectExportResultTextarea {
     resize: none;
     height: 200px;
+}
+
+.gn-flexFieldObjectExportResultErrorListHeader {
+    margin-top: 10px;
 }
 
 .gn-flexFieldObjectExportResultErrorList {
@@ -1030,13 +1145,13 @@ gn-kirjaTableOfContent {
     }
 }
 
-.gn-kartaNotEditingDefaultChapterHint {
+.gn-kartaTopBarHintIcon {
     display: inline-block;
     margin-right: 10px;
     font-size: 26px;
 }
 
-.gn-kartaNotEditingDefaultChapterHint i {
+.gn-kartaTopBarHintIcon i {
     top: 15px;
 }
 
@@ -1062,6 +1177,10 @@ gn-kirjaTableOfContent {
     margin-right: 10px;
 }
 
+.gn-kartaVisibleCheckboxDisabled {
+    cursor: default;
+}
+
 .gn-kartaTreeView {
     list-style: none;
     padding-left: 15px;
@@ -1075,6 +1194,18 @@ gn-kirjaTableOfContent {
     padding-left: 5px;
 }
 
+.gn-kartaTreeViewEntry a {
+    width: 100%;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gn-kartaTreeViewEntrySmall {
+    width: calc(100% - 25px) !important;
+}
+
 .gn-kartaTreeViewEntrySelected {
     background-color: #EEEEEE;
 }
@@ -1082,6 +1213,7 @@ gn-kirjaTableOfContent {
 .gn-kartaTreeViewEntryMarkerEye {
     float: right;
     margin-right: 5px;
+    margin-top: 2px;
 }
 
 .gn-kartaTreeViewSearchContainer {
@@ -1096,7 +1228,11 @@ gn-kirjaTableOfContent {
     z-index: -1;
 }
 
-.gn-kartaIconLabel {
+.gn-kartaDailyRoutineTimeLabel {
+    font-size: 14px;
+}
+
+.gn-kartaIconLabel, .gn-kartaDailyRoutineTimeLabel {
     color: #FFF;
     position: absolute;
     left: -37px;
@@ -1110,7 +1246,7 @@ gn-kirjaTableOfContent {
     text-shadow: 0 0 1px black;
 }
 
-.gn-kartaShowLabels .gn-kartaIconLabel {
+.gn-kartaShowLabels .gn-kartaIconLabel, .gn-kartaShowLabels .gn-kartaDailyRoutineTimeLabel {
     display: block !important;
 }
 
@@ -1133,8 +1269,12 @@ gn-kirjaTableOfContent {
     text-align: right;
 }
 
-.gn-kartaCopyMarkerLink, .gn-kartaEditMarkerGeometryButton, .gn-kartaEditMarkerButton, .gn-kartaMarkAsImplementedMarkerButton {
+.gn-kartaManageDailyRoutine, .gn-setExportNameButton, .gn-kartaCopyMarkerLink, .gn-kartaEditMarkerGeometryButton, .gn-kartaEditMarkerButton, .gn-kartaMarkAsImplementedMarkerButton {
     margin-right: 5px;
+}
+
+.gn-kartaMarkerHasExportName {
+    color: #19b643 !important;
 }
 
 .gn-kartaGeometryDeleteButton {
@@ -1148,6 +1288,56 @@ path.leaflet-interactive {
 
 .gn-kartaGeometryEditable {
     cursor: pointer !important;
+}
+
+.gn-kartaAddEditEventEditScript {
+    margin-left: 5px;
+}
+
+.gn-kartaAddEditEventDeleteScript {
+    float: right;
+    padding-top: 10px;
+}
+
+.gn-kartaDailyRoutinePopupLabel {
+    display: inline-block;
+    width: 220px;
+    margin-bottom: 5px;
+}
+
+.gn-kartaDailyRoutineCalloutIndiciatorIcon {
+    margin-right: -10px; 
+    font-size: 20px; 
+    top: 12px !important;
+}
+
+.gn-kartaDailyRoutineCallout {
+    position: absolute;
+    z-index: 1001;
+    top: 58px;
+    right: 15px;
+    text-align: left;
+    min-width: 700px;
+}
+
+@media(max-width:768px) {
+    .gn-kartaDailyRoutineCallout {
+        min-width: 100px;
+        max-width: 100%;
+        right: 0px;
+        overflow-x: auto;
+    }
+
+    .gn-kartaDailyRoutineCalloutTableContainer {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+@media(min-width:1200px) {
+    .gn-kartaDailyRoutineCallout {
+        min-width: 900px;
+    }
 }
 
 .leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-colorpicker, .leaflet-draw-toolbar .leaflet-draw-draw-colorpicker {
@@ -1222,19 +1412,45 @@ path.leaflet-interactive {
     margin-left: 5px;
 }
 
-.gn-taleSelectItemAction:hover {
-    color: #FFFFFF;
+.gn-nodeActionOpenObject, .gn-nodeActionOpenChooseObject {
+    margin-left: 5px;
 }
 
-.gn-taleItemQuantity {
-    margin-top: 0px !important;
+.gn-actionNodeObjectSelectionSeperator {
+    margin-top: 3px;
+    margin-left: 5px;
 }
 
-/** Tale Config **/
+.gn-actionNodeTimeOverflow {
+    overflow: visible !important;
+}
 
-.gn-taleConfigTextArea {
+.gn-actionNodeTimeContainer .dropdown-menu {
+    background-color: #666;
+}
+
+.gn-actionNodeTimeContainer .btn-link:hover {
+    background-color: #555 !important;
+}
+
+.gn-actionNodeTimeContainer .btn-link:active, .gn-actionNodeTimeContainer .btn-link:focus {
+    background-color: #345 !important;
+}
+
+.gn-actionNodeTimeContainer .gn-timePickerInput {
+    margin-bottom: 8px;
+}
+
+/** Project Config **/
+
+.gn-projectConfigTextArea {
     margin-top: 10px;
     height: 150px !important;
+}
+
+.gn-projectConfigNpcOutsideTimespanList {
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 /** Aika Chapter Detail **/
@@ -1503,6 +1719,10 @@ path.leaflet-interactive {
     padding-left: 0px !important;
 }
 
+.gn-taskCardSelect[disabled] {
+    background-color: #FFF;
+}
+
 .gn-taskCard .gn-taskCardSelect {
     font-size: 12px;
 }
@@ -1639,7 +1859,13 @@ path.leaflet-interactive {
 
 .gn-exportManageTemplateCodeEditor {
     width: 100%;
-    height: 700px;
+    height: 500px;
+}
+
+@media(min-height:1100px) {
+    .gn-exportManageTemplateCodeEditor {
+        height: 700px;
+    }
 }
 
 .gn-exportManageTemplateLoading {
@@ -1666,4 +1892,83 @@ path.leaflet-interactive {
 
 .gn-exportManageTemplatePlaceholderTable {
     margin-bottom: 0px;
+}
+
+/** DateTime Events **/
+.gn-addEditEventLatestTimePicker {
+    border-top-right-radius: .25rem !important;
+    border-bottom-right-radius: .25rem !important;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/** Time Picker **/
+.gn-timePickerMainContainer {
+    position: relative;
+}
+
+.gn-timePickerMainContainerStyling .dropdown-menu {
+    margin-top: 35px;
+}
+
+.gn-timePickerMainStyling {
+    background-color: #FFF !important;
+}
+
+.gn-timePickerControlContainer {
+    display: flex;
+    align-items:center
+}
+
+.gn-timePickerSingleControlContainer {
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: space-around;
+}
+
+.gn-timePickerSingleControlContainerHours {
+    margin-left: 12px;
+}
+
+.gn-timePickerInput {
+    width: 60px !important;
+    border-radius:.25rem !important;
+}
+
+.gn-timePickerSeperator {
+    width:15px;
+    text-align:center;
+}
+
+/** Choose Script Type Dialog **/
+.gn-scriptTypeDialogHeader {
+    font-weight: bold;
+}
+
+/** Code Script Editor **/
+.gn-codeScriptEditorDialog {
+    width: 95%;
+}
+
+/** Node Script Editor **/
+.gn-nodeScriptEditorDialog {
+    width: 95%;
+}
+
+.gn-nodeScriptEditorDialog .modal-body {
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+}
+
+.gn-nodeScriptEditorContainer {
+	width: 100%;
+	height: 600px;
+	overflow: hidden;
+}
+
+@media(min-height:1300px) {
+    .gn-nodeScriptEditorContainer {
+		height: 900px;
+    }
 }

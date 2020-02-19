@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Reflection;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
+using GoNorth.Data.Evne;
 using GoNorth.Data.Exporting;
-using GoNorth.Data.FlexFieldDatabase;
 using GoNorth.Data.Kortisto;
+using GoNorth.Data.Styr;
 using GoNorth.Data.Tale;
-using Newtonsoft.Json;
 
 namespace GoNorth.Services.Export.Json
 {
@@ -16,12 +15,26 @@ namespace GoNorth.Services.Export.Json
     public class JsonExporter : IObjectExporter
     {
         /// <summary>
+        /// Object export snippet db access
+        /// </summary>
+        private readonly IObjectExportSnippetDbAccess _objectExportSnippetDbAccess;
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="objectExportSnippetDbAccess">Object export snippet db access</param>
+        public JsonExporter(IObjectExportSnippetDbAccess objectExportSnippetDbAccess)
+        {
+            _objectExportSnippetDbAccess = objectExportSnippetDbAccess;
+        }
+
+        /// <summary>
         /// Exports an object
         /// </summary>
         /// <param name="template">Template to use</param>
         /// <param name="objectData">Object data</param>
         /// <returns>Export Result</returns>
-        public Task<ExportObjectResult> ExportObject(ExportTemplate template, ExportObjectData objectData)
+        public async Task<ExportObjectResult> ExportObject(ExportTemplate template, ExportObjectData objectData)
         {
             ExportObjectResult result = new ExportObjectResult();
             result.FileExtension = "json";
@@ -31,6 +44,19 @@ namespace GoNorth.Services.Export.Json
             {
                 NpcJsonExportObject exportObject = new NpcJsonExportObject((KortistoNpc)objectData.ExportData[ExportConstants.ExportDataObject]);
                 exportObject.Dialog = objectData.ExportData[ExportConstants.ExportDataDialog] as TaleDialog;
+                exportObject.ExportSnippets = await _objectExportSnippetDbAccess.GetExportSnippets(exportObject.Id);
+                exportResult = exportObject;
+            }
+            else if(template.TemplateType == TemplateType.ObjectItem)
+            {
+                ItemJsonExportObject exportObject = new ItemJsonExportObject((StyrItem)objectData.ExportData[ExportConstants.ExportDataObject]);
+                exportObject.ExportSnippets = await _objectExportSnippetDbAccess.GetExportSnippets(exportObject.Id);
+                exportResult = exportObject;
+            }
+            else if(template.TemplateType == TemplateType.ObjectSkill)
+            {
+                SkillJsonExportObject exportObject = new SkillJsonExportObject((EvneSkill)objectData.ExportData[ExportConstants.ExportDataObject]);
+                exportObject.ExportSnippets = await _objectExportSnippetDbAccess.GetExportSnippets(exportObject.Id);
                 exportResult = exportObject;
             }
             else
@@ -38,12 +64,14 @@ namespace GoNorth.Services.Export.Json
                 exportResult = objectData.ExportData[ExportConstants.ExportDataObject];
             }
 
-            JsonSerializerSettings serializerSettings = new JsonSerializerSettings();
-            serializerSettings.ContractResolver = new JsonExportContractResolver();
-            serializerSettings.Formatting = Formatting.Indented;
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
 
-            result.Code = JsonConvert.SerializeObject(exportResult, serializerSettings);
-            return Task.FromResult(result);
+            result.Code = JsonSerializer.Serialize(exportResult, options);
+            return result;
         }
     }
 }

@@ -1,8 +1,9 @@
-using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using GoNorth.Data.Exporting;
-using GoNorth.Data.Kortisto;
+using GoNorth.Data.FlexFieldDatabase;
 using GoNorth.Data.NodeGraph;
 using GoNorth.Data.Project;
 using GoNorth.Services.Export.Data;
@@ -10,7 +11,6 @@ using GoNorth.Services.Export.Dialog.ConditionRendering;
 using GoNorth.Services.Export.LanguageKeyGeneration;
 using GoNorth.Services.Export.Placeholder;
 using Microsoft.Extensions.Localization;
-using Newtonsoft.Json;
 
 namespace GoNorth.Services.Export.Dialog
 {
@@ -34,9 +34,10 @@ namespace GoNorth.Services.Export.Dialog
         /// </summary>
         /// <param name="defaultTemplateProvider">Default Template Provider</param>
         /// <param name="cachedDbAccess">Cached Db Access</param>
+        /// <param name="dailyRoutineEventPlaceholderResolver">Daily routine event placeholder resolver</param>
         /// <param name="languageKeyGenerator">Language Key Generator</param>
         /// <param name="localizerFactory">Localizer Factory</param>
-        public ConditionRenderer(ICachedExportDefaultTemplateProvider defaultTemplateProvider, IExportCachedDbAccess cachedDbAccess, ILanguageKeyGenerator languageKeyGenerator, IStringLocalizerFactory localizerFactory)
+        public ConditionRenderer(ICachedExportDefaultTemplateProvider defaultTemplateProvider, IExportCachedDbAccess cachedDbAccess, IDailyRoutineEventPlaceholderResolver dailyRoutineEventPlaceholderResolver, ILanguageKeyGenerator languageKeyGenerator, IStringLocalizerFactory localizerFactory)
         {
             _defaultTemplateProvider = defaultTemplateProvider;
 
@@ -49,13 +50,19 @@ namespace GoNorth.Services.Export.Dialog
             _elementRenderes.Add(ConditionType.ChooseQuestValueCondition, new QuestValueConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory));
             _elementRenderes.Add(ConditionType.QuestStateCondition, new QuestStateConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory));
             _elementRenderes.Add(ConditionType.NpcAliveStateCondition, new NpcAliveStateConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory));
-            _elementRenderes.Add(ConditionType.GameTimeCondition, new GameTimeConditionResolver(defaultTemplateProvider, localizerFactory));
+            _elementRenderes.Add(ConditionType.CurrentSkillValueCondition, new CurrentSkillValueConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory));
+            _elementRenderes.Add(ConditionType.GameTimeCondition, new GameTimeConditionResolver(defaultTemplateProvider, cachedDbAccess, localizerFactory));
             _elementRenderes.Add(ConditionType.PlayerSkillValueCondition, new SkillValueConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, true));
             _elementRenderes.Add(ConditionType.NpcSkillValueCondition, new SkillValueConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, false));
             _elementRenderes.Add(ConditionType.PlayerLearnedSkillCondition, new LearnedSkillConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, true, true));
             _elementRenderes.Add(ConditionType.PlayerNotLearnedSkillCondition, new LearnedSkillConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, true, false));
             _elementRenderes.Add(ConditionType.NpcLearnedSkillCondition, new LearnedSkillConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, false, true));
             _elementRenderes.Add(ConditionType.NpcNotLearnedSkillCondition, new LearnedSkillConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory, false, false));
+            _elementRenderes.Add(ConditionType.RandomValueCondition, new RandomValueConditionResolver(defaultTemplateProvider, localizerFactory));
+            _elementRenderes.Add(ConditionType.DailyRoutineEventIsDisabledCondition, new DailyRoutineEventStateConditionResolver(defaultTemplateProvider, cachedDbAccess, dailyRoutineEventPlaceholderResolver, languageKeyGenerator, localizerFactory, true));
+            _elementRenderes.Add(ConditionType.DailyRoutineEventIsEnabledCondition, new DailyRoutineEventStateConditionResolver(defaultTemplateProvider, cachedDbAccess, dailyRoutineEventPlaceholderResolver, languageKeyGenerator, localizerFactory, false));
+            _elementRenderes.Add(ConditionType.CodeCondition, new CodeConditionResolver(defaultTemplateProvider, localizerFactory));
+            _elementRenderes.Add(ConditionType.ItemValueCondition, new ItemValueConditionResolver(defaultTemplateProvider, cachedDbAccess, languageKeyGenerator, localizerFactory));
         }
 
         /// <summary>
@@ -64,10 +71,10 @@ namespace GoNorth.Services.Export.Dialog
         /// <param name="project">Project</param>
         /// <param name="condition">Condition render</param>
         /// <param name="errorCollection">Error Collection</param>
-        /// <param name="npc">Npc to which the dialog belongs</param>
+        /// <param name="flexFieldObject">Flex Field object to which the dialog belongs</param>
         /// <param name="exportSettings">Export Settings</param>
         /// <returns>Result of rendering the condition</returns>
-        public async Task<string> RenderCondition(GoNorthProject project, Condition condition, ExportPlaceholderErrorCollection errorCollection, KortistoNpc npc, ExportSettings exportSettings)
+        public async Task<string> RenderCondition(GoNorthProject project, Condition condition, ExportPlaceholderErrorCollection errorCollection, FlexFieldObject flexFieldObject, ExportSettings exportSettings)
         {
             if(string.IsNullOrEmpty(condition.ConditionElements))
             {
@@ -75,8 +82,14 @@ namespace GoNorth.Services.Export.Dialog
             }
 
             ExportTemplate andTemplate = await _defaultTemplateProvider.GetDefaultTemplateByType(project.Id, TemplateType.GeneralLogicAnd);
-            List<ParsedConditionData> conditionElements = JsonConvert.DeserializeObject<List<ParsedConditionData>>(condition.ConditionElements);
-            return RenderConditionElements(project, conditionElements, andTemplate.Code, errorCollection, npc, exportSettings);
+
+            JsonSerializerOptions jsonOptions = new JsonSerializerOptions();
+            jsonOptions.Converters.Add(new JsonStringEnumConverter());
+            jsonOptions.Converters.Add(new JsonConditionDataParser());
+            jsonOptions.PropertyNameCaseInsensitive = true;
+
+            List<ParsedConditionData> parsedConditionData = JsonSerializer.Deserialize<List<ParsedConditionData>>(condition.ConditionElements, jsonOptions);
+            return RenderConditionElements(project, parsedConditionData, andTemplate.Code, errorCollection, flexFieldObject, exportSettings);
         }
 
         /// <summary>
@@ -86,10 +99,10 @@ namespace GoNorth.Services.Export.Dialog
         /// <param name="conditionElements">Condition Elements</param>
         /// <param name="groupOperator">Grouping operator (and, or)</param>
         /// <param name="errorCollection">Error Collection</param>
-        /// <param name="npc">Npc to which the dialog belongs</param>
+        /// <param name="flexFieldObject">Flex field object to which the dialog belongs</param>
         /// <param name="exportSettings">Export Settings</param>
         /// <returns>Result of rendering the condition</returns>
-        public string RenderConditionElements(GoNorthProject project, List<ParsedConditionData> conditionElements, string groupOperator, ExportPlaceholderErrorCollection errorCollection, KortistoNpc npc, ExportSettings exportSettings)
+        public string RenderConditionElements(GoNorthProject project, List<ParsedConditionData> conditionElements, string groupOperator, ExportPlaceholderErrorCollection errorCollection, FlexFieldObject flexFieldObject, ExportSettings exportSettings)
         {
             string conditionResult = string.Empty;
             foreach(ParsedConditionData curCondition in conditionElements)
@@ -99,7 +112,7 @@ namespace GoNorth.Services.Export.Dialog
                     conditionResult += groupOperator;
                 }
 
-                conditionResult += BuildSingleConditionElement(project, curCondition, errorCollection, npc, exportSettings);
+                conditionResult += BuildSingleConditionElement(project, curCondition, errorCollection, flexFieldObject, exportSettings);
             }
 
             return conditionResult;
@@ -111,10 +124,10 @@ namespace GoNorth.Services.Export.Dialog
         /// <param name="project">Project</param>
         /// <param name="condition">Current Condition</param>
         /// <param name="errorCollection">Error Collection</param>
-        /// <param name="npc">Npc to which the dialog belongs</param>
+        /// <param name="flexFieldObject">FlexField to which the dialog belongs</param>
         /// <param name="exportSettings">Export Settings</param>
         /// <returns>Condition Build Result</returns>
-        private string BuildSingleConditionElement(GoNorthProject project, ParsedConditionData condition, ExportPlaceholderErrorCollection errorCollection, KortistoNpc npc, ExportSettings exportSettings)
+        private string BuildSingleConditionElement(GoNorthProject project, ParsedConditionData condition, ExportPlaceholderErrorCollection errorCollection, FlexFieldObject flexFieldObject, ExportSettings exportSettings)
         {
             ConditionType conditionType = (ConditionType)condition.ConditionType;
             if(!_elementRenderes.ContainsKey(conditionType))
@@ -123,7 +136,7 @@ namespace GoNorth.Services.Export.Dialog
                 return string.Empty;
             }
 
-            return _elementRenderes[conditionType].BuildSingleConditionElement(condition, project, errorCollection, npc, exportSettings);
+            return _elementRenderes[conditionType].BuildSingleConditionElement(condition, project, errorCollection, flexFieldObject, exportSettings);
         }
 
 

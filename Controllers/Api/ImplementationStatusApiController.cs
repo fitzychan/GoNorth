@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using GoNorth.Data.Aika;
 using GoNorth.Data.Evne;
+using GoNorth.Data.Exporting;
 using GoNorth.Data.Karta;
 using GoNorth.Data.Karta.Marker;
 using GoNorth.Data.Kortisto;
@@ -13,6 +12,7 @@ using GoNorth.Data.Tale;
 using GoNorth.Services.ImplementationStatusCompare;
 using GoNorth.Services.Timeline;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -22,9 +22,10 @@ namespace GoNorth.Controllers.Api
     /// <summary>
     /// Implementation Status controller
     /// </summary>
+    [ApiController]
     [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
     [Route("/api/[controller]/[action]")]
-    public class ImplementationStatusApiController : Controller
+    public class ImplementationStatusApiController : ControllerBase
     {
         /// <summary>
         /// Formatted Compare Response
@@ -109,6 +110,16 @@ namespace GoNorth.Controllers.Api
         private readonly IKartaMarkerImplementationSnapshotDbAccess _markerSnapshotDbAccess;
 
         /// <summary>
+        /// Object Export Snippet Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetDbAccess _objectExportSnippetDbAccess;
+        
+        /// <summary>
+        /// Object Export Snippet Snapshot Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetSnapshotDbAccess _objectExportSnippetSnapshotDbAccess;
+
+        /// <summary>
         /// Timeline Service
         /// </summary>
         private readonly ITimelineService _timelineService;
@@ -139,12 +150,15 @@ namespace GoNorth.Controllers.Api
         /// <param name="questSnapshotDbAccess">Quest Implementation Snapshot Db Access</param>
         /// <param name="mapDbAccess">Map Db Access</param>
         /// <param name="markerSnapshotDbAccess">Marker Db Access</param>
+        /// <param name="objectExportSnippetDbAccess">Object export snippet Db Access</param>
+        /// <param name="objectExportSnippetSnapshotDbAccess">Object export snippet snapshot Db Access</param>
         /// <param name="timelineService">Timeline Service</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public ImplementationStatusApiController(IImplementationStatusComparer implementationStatusComparer, IKortistoNpcDbAccess npcDbAccess, IKortistoNpcImplementationSnapshotDbAccess npcSnapshotDbAccess, IStyrItemDbAccess itemDbAccess, IStyrItemImplementationSnapshotDbAccess itemSnapshotDbAccess,
                                                  IEvneSkillDbAccess skillDbAccess, IEvneSkillImplementationSnapshotDbAccess skillSnapshotDbAccess, ITaleDbAccess dialogDbAccess, ITaleDialogImplementationSnapshotDbAccess dialogSnapshotDbAccess, IAikaQuestDbAccess questDbAccess, IAikaQuestImplementationSnapshotDbAccess questSnapshotDbAccess, 
-                                                 IKartaMapDbAccess mapDbAccess, IKartaMarkerImplementationSnapshotDbAccess markerSnapshotDbAccess, ITimelineService timelineService, ILogger<ImplementationStatusApiController> logger, IStringLocalizerFactory localizerFactory)
+                                                 IKartaMapDbAccess mapDbAccess, IKartaMarkerImplementationSnapshotDbAccess markerSnapshotDbAccess, IObjectExportSnippetDbAccess objectExportSnippetDbAccess, IObjectExportSnippetSnapshotDbAccess objectExportSnippetSnapshotDbAccess, 
+                                                 ITimelineService timelineService, ILogger<ImplementationStatusApiController> logger, IStringLocalizerFactory localizerFactory)
         {
             _implementationStatusComparer = implementationStatusComparer;
             _npcDbAccess = npcDbAccess;
@@ -159,6 +173,8 @@ namespace GoNorth.Controllers.Api
             _questSnapshotDbAccess = questSnapshotDbAccess;
             _mapDbAccess = mapDbAccess;
             _markerSnapshotDbAccess = markerSnapshotDbAccess;
+            _objectExportSnippetDbAccess = objectExportSnippetDbAccess;
+            _objectExportSnippetSnapshotDbAccess = objectExportSnippetSnapshotDbAccess;
             _timelineService = timelineService;
             _logger = logger;
             _localizer = localizerFactory.Create(typeof(ImplementationStatusApiController));
@@ -170,6 +186,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="npcId">Id of the npc</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Kortisto)]
         [HttpGet]
@@ -186,6 +203,8 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="npcId">Id of the npc</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Kortisto)]
         [ValidateAntiForgeryToken]
@@ -196,13 +215,14 @@ namespace GoNorth.Controllers.Api
             KortistoNpc npc = await _npcDbAccess.GetFlexFieldObjectById(npcId);
             if(npc == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag npc as implemented
             npc.IsImplemented = true;
             await _npcSnapshotDbAccess.SaveSnapshot(npc);
             await _npcDbAccess.UpdateFlexFieldObject(npc);
+            await FlagObjectExportSnippetsAsImplemented(npc.Id);
 
             // Add Timeline entry
             await _timelineService.AddTimelineEntry(TimelineEvent.ImplementedNpc, npc.Id, npc.Name);
@@ -210,13 +230,13 @@ namespace GoNorth.Controllers.Api
             return Ok();
         }
 
-
         /// <summary>
         /// Returns the compare results for an item
         /// </summary>
         /// <param name="itemId">Id of the item</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Styr)]
         [HttpGet]
@@ -233,6 +253,8 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="itemId">Id of the item</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Styr)]
         [ValidateAntiForgeryToken]
@@ -243,13 +265,14 @@ namespace GoNorth.Controllers.Api
             StyrItem item = await _itemDbAccess.GetFlexFieldObjectById(itemId);
             if(item == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag item as implemented
             item.IsImplemented = true;
             await _itemSnapshotDbAccess.SaveSnapshot(item);
             await _itemDbAccess.UpdateFlexFieldObject(item);
+            await FlagObjectExportSnippetsAsImplemented(item.Id);
 
             // Add Timeline entry
             await _timelineService.AddTimelineEntry(TimelineEvent.ImplementedItem, item.Id, item.Name);
@@ -264,6 +287,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="skillId">Id of the skill</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Evne)]
         [HttpGet]
@@ -280,6 +304,8 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="skillId">Id of the skill</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Evne)]
         [ValidateAntiForgeryToken]
@@ -290,13 +316,14 @@ namespace GoNorth.Controllers.Api
             EvneSkill skill = await _skillDbAccess.GetFlexFieldObjectById(skillId);
             if(skill == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag skill as implemented
             skill.IsImplemented = true;
             await _skillSnapshotDbAccess.SaveSnapshot(skill);
             await _skillDbAccess.UpdateFlexFieldObject(skill);
+            await FlagObjectExportSnippetsAsImplemented(skill.Id);
 
             // Add Timeline entry
             await _timelineService.AddTimelineEntry(TimelineEvent.ImplementedSkill, skill.Id, skill.Name);
@@ -311,6 +338,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="dialogId">Id of the dialog</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Tale)]
         [HttpGet]
@@ -327,6 +355,8 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="dialogId">Id of the dialog</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Tale)]
         [ValidateAntiForgeryToken]
@@ -337,7 +367,7 @@ namespace GoNorth.Controllers.Api
             TaleDialog dialog = await _dialogDbAccess.GetDialogById(dialogId);
             if(dialog == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag dialog as implemented
@@ -364,6 +394,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="questId">Id of the quest</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Aika)]
         [HttpGet]
@@ -380,6 +411,8 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="questId">Id of the Quest</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Aika)]
         [ValidateAntiForgeryToken]
@@ -390,7 +423,7 @@ namespace GoNorth.Controllers.Api
             AikaQuest quest = await _questDbAccess.GetQuestById(questId);
             if(quest == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag quest as implemented
@@ -413,6 +446,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="markerType">Type of the marker</param>
         /// <returns>Compare results</returns>
         [Produces(typeof(FormattedCompareResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Karta)]
         [HttpGet]
@@ -431,6 +465,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="markerId">Id of the marker</param>
         /// <param name="markerType">Type of the marker</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Karta)]
         [ValidateAntiForgeryToken]
@@ -441,7 +477,7 @@ namespace GoNorth.Controllers.Api
             KartaMap map = await _mapDbAccess.GetMapById(mapId);
             if(map == null)
             {
-                return StatusCode((int)HttpStatusCode.NotFound);
+                return NotFound();
             }
 
             // Flag Marker as implemented
@@ -485,6 +521,22 @@ namespace GoNorth.Controllers.Api
             await _timelineService.AddTimelineEntry(TimelineEvent.ImplementedMarker, mapId, markerId, markerType.ToString(), map.Name);
 
             return Ok();
+        }
+
+
+        /// <summary>
+        /// Flags object export snippets as implemented
+        /// </summary>
+        /// <param name="id">Id of the object</param>
+        /// <returns>Task</returns>
+        private async Task FlagObjectExportSnippetsAsImplemented(string id)
+        {
+            List<ObjectExportSnippet> existingSnippets = await _objectExportSnippetDbAccess.GetExportSnippets(id);
+            await _objectExportSnippetSnapshotDbAccess.DeleteExportSnippetSnapshotsByObjectId(id);
+            foreach(ObjectExportSnippet curSnippet in existingSnippets)
+            {
+                await _objectExportSnippetSnapshotDbAccess.CreateExportSnippetSnapshot(curSnippet);
+            }
         }
 
                 

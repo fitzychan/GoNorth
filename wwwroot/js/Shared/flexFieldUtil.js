@@ -17,7 +17,7 @@
             for(var curField = 0; curField < fields.length; ++curField)
             {
                 if(fields[curField].fieldType == GoNorth.FlexFieldDatabase.ObjectForm.FlexFieldTypeMultiLine ||
-                   (fields[curField].scriptSettings && fields[curField].scriptSettings.dontExportToScript))
+                   fields[curField].fieldType == GoNorth.FlexFieldDatabase.ObjectForm.FlexFieldGroup)
                 {
                     continue;
                 }

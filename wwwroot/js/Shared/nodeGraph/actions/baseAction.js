@@ -15,6 +15,15 @@
             /// Actions that are related to items
             Actions.RelatedToObjectItem = "Item";
 
+            /// Actions that are related to map markers
+            Actions.RelatedToObjectMapMarker = "MapMarker";
+
+            /// Actions that are related to a map
+            Actions.RelatedToObjectMap = "Map";
+
+            /// Actions that are related to a daily routine
+            Actions.RelatedToObjectDailyRoutine = "NpcDailyRoutineEvent";
+
             /**
              * Base Action
              * @class
@@ -77,6 +86,33 @@
                  */
                 getConfigKey: function() {
                     return null;
+                },
+
+                /**
+                 * Returns the names of the custom action attributes
+                 * 
+                 * @returns {string[]} Name of the custom action attributes
+                 */
+                getCustomActionAttributes: function() {
+                    return [];
+                },
+
+                /**
+                 * Returns the label for the main output
+                 * 
+                 * @returns {string} Label for the main output
+                 */
+                getMainOutputLabel: function() {
+                    return "";
+                },
+
+                /**
+                 * Returns the additional outports of the action
+                 * 
+                 * @returns {string[]} Additional outports
+                 */
+                getAdditionalOutports: function() {
+                    return [];
                 },
 
                 /**

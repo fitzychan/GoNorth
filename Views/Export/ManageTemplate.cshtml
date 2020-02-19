@@ -23,7 +23,7 @@
                     <p class="gn-exportManageTemplateWarningOnDelete">@Localizer["AllObjectsUsingThisTemplateWillUseParentTemplate"]</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-bind="click: deleteTemplate, disabled: isLoading">@Localizer["Yes"]</button>
+                    <button type="button" class="btn btn-default" data-bind="click: deleteTemplate, disable: isLoading">@Localizer["Yes"]</button>
                     <button type="button" class="btn btn-default" data-bind="click: closeDeleteTemplateDialog">@Localizer["No"]</button>
                 </div>
             </div>
@@ -52,6 +52,14 @@
         </ul>
     </div>
 
+    <div class="alert alert-warning gn-defaultContentTopMargin gn-exportManageTemplateChildObjectsList" style="display: none" data-bind="visible: objectWithInvalidSnippets().length > 0">
+        @Localizer["ObjectsHavingInvalidSnippets"]
+        <ul data-bind="foreach: objectWithInvalidSnippets">
+            <li><a data-bind="href: function(childTemplate) { return $root.buildChildTemplateUrl(childTemplate); }"><span data-bind="text: objectName"></span></a></li>
+        </ul>
+    </div>
+    
+
     <!-- Command Buttons -->
     <button type="button" class="btn btn-primary gn-commandWidgetTopMargin" data-bind="click: save, disable: isLoading() || isReadonly()">
         <i class="glyphicon glyphicon-floppy-disk" data-bind="visible: !isLoading()"></i><i class="glyphicon glyphicon-refresh spinning" style="display: none" data-bind="visible: isLoading"></i> @Localizer["Save"]
@@ -64,7 +72,7 @@
     <div class="row gn-defaultContentTopMargin">
         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
             <!-- Placeholders -->
-            <h4 class="gn-clickable" data-bind="click: tooglePlaceholderVisibility">
+            <h4 class="gn-clickable" data-bind="click: tooglePlaceholderVisibility" id="gn-exportManageTemplatePlaceholderToggleButton">
                 <i class="glyphicon glyphicon-triangle-right" data-bind="visible: !arePlaceholdersExpanded()"></i><i class="glyphicon glyphicon-triangle-bottom" data-bind="visible: arePlaceholdersExpanded" style="display: none"></i> 
                 @Localizer["Placeholders"]
             </h4>
@@ -111,7 +119,7 @@
         @foreach(ExportTemplateTypeUrl curTemplateTypeUrl in Model.TemplateTypeUrls)
         {
             <text>
-            GoNorth.Export.ManageTemplate.templateTypeMapping[@((int)@curTemplateTypeUrl.TemplateType)] = "@curTemplateTypeUrl.FormUrl";
+            GoNorth.Export.ManageTemplate.templateTypeMapping["@(@curTemplateTypeUrl.TemplateType.ToString())"] = "@curTemplateTypeUrl.FormUrl";
             </text>
         }
 

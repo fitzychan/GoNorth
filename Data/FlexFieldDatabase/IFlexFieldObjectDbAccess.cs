@@ -96,6 +96,20 @@ namespace GoNorth.Data.FlexFieldDatabase
         Task<List<T>> GetFlexFieldObjectsByTemplate(string templateId);
 
         /// <summary>
+        /// Returns all flex field objects that are not part of an id list. This means that they are not part of the list themselfs and or their template
+        /// </summary>
+        /// <param name="idList">List of ids</param>
+        /// <returns>Flex field objects</returns>
+        Task<List<T>> GetFlexFieldObjectsNotPartOfIdList(IEnumerable<string> idList);
+        
+        /// <summary>
+        /// Returns all flex field objects that are part of an id list. This means that they are not part of the list themselfs and or their template
+        /// </summary>
+        /// <param name="idList">List of ids</param>
+        /// <returns>Flex field objects</returns>
+        Task<List<T>> GetFlexFieldObjectsPartOfIdList(IEnumerable<string> idList);
+
+        /// <summary>
         /// Resolves the names for a list of Flex Field Objects
         /// </summary>
         /// <param name="flexFieldObjectIds">Flex Field Object Ids</param>
@@ -108,6 +122,14 @@ namespace GoNorth.Data.FlexFieldDatabase
         /// <param name="flexFieldObject">Flex Field Object to update</param>
         /// <returns>Task</returns>
         Task UpdateFlexFieldObject(T flexFieldObject);
+
+        /// <summary>
+        /// Moves an object to a folder
+        /// </summary>
+        /// <param name="objectId">Object to move</param>
+        /// <param name="targetFolderId">Id of the folder to move the object to</param>
+        /// <returns>Task</returns>
+        Task MoveToFolder(string objectId, string targetFolderId);
 
         /// <summary>
         /// Deletes an Flex Field Object
@@ -137,5 +159,26 @@ namespace GoNorth.Data.FlexFieldDatabase
         /// <param name="userId">Id of the user</param>
         /// <returns>Objects</returns>
         Task<List<T>> GetFlexFieldObjectsByModifiedUser(string userId);
+        
+        /// <summary>
+        /// Returns all objects in Recycle bin that were last modified by a given user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Objects</returns>
+        Task<List<T>> GetRecycleBinFlexFieldObjectsByModifiedUser(string userId);
+        
+        /// <summary>
+        /// Resets all objects in the Recycle bin that were modified by a user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Task</returns>
+        Task ResetRecycleBinFlexFieldObjectsByModifiedUser(string userId);
+        
+        /// <summary>
+        /// Resolves the names for a list of Flex Field Objects in the Recycle bin
+        /// </summary>
+        /// <param name="flexFieldObjectIds">Flex Field Object Ids</param>
+        /// <returns>Resolved Flex Field Objects with names</returns>
+        Task<List<T>> ResolveRecycleBinFlexFieldObjectNames(List<string> flexFieldObjectIds);
     }
 }

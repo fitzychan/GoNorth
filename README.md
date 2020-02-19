@@ -20,7 +20,7 @@ It offers modules for:
 ## Deployment
 ![Badge](https://leif-dev.visualstudio.com/_apis/public/build/definitions/31ab5f65-48ba-4e5b-a93d-590ba3af9850/2/badge)
 
-Please refer to the [wiki for deployment details](https://github.com/steffendx/GoNorth/wiki/Deployment) and the [official documentation on how to host and deploy an ASP.NET Core application](https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/?tabs=aspnetcore2x).
+Please refer to the [wiki for deployment details](https://github.com/steffendx/GoNorth/wiki/Deployment), [docker deployment details](https://github.com/steffendx/GoNorth/wiki/Docker-Deployment) and the [official documentation on how to host and deploy an ASP.NET Core application](https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/?tabs=aspnetcore2x).
 
 ## Brief Overview
 
@@ -50,6 +50,15 @@ Using the dialog planning module a user can create the branching dialogs for the
 GoNorth provides different dialog nodes for player or npc lines, player choices, conditions or actions.  
 More details can be found [in the wiki](https://github.com/steffendx/GoNorth/wiki/Tale).
 
+### Daily routine planning
+To help you build a living world, GoNorth allows you to easily define a daily routine for any Npc:  
+
+![Daily Routines](https://github.com/steffendx/GoNorth/blob/master/TeaserImages/DailyRoutines.png?raw=true)  
+
+You can define movement targets for npcs as well as scripts that are run at a certain time of day. This way you can really let your world come to live.  
+More details can be found in the [wiki](https://github.com/steffendx/GoNorth/wiki/Kortisto)
+
+
 ### Exporting
 GoNorth supports exporting Npcs, Dialogs, Skills and Items to JSON and scripts.
 
@@ -57,7 +66,10 @@ GoNorth supports exporting Npcs, Dialogs, Skills and Items to JSON and scripts.
 
 The scripts can be adjusted using a template system with different placeholders for values, learned skills, inventory and dialogs.  
 For better localization support strings can be exported as language keys and localizable language files can be exported.  
-More details can be found [in the wiki](https://github.com/steffendx/GoNorth/wiki/Export).
+More details can be found [in the wiki](https://github.com/steffendx/GoNorth/wiki/Export).  
+
+To give an additional form of flexibility during exporting, GoNorth supports so called export snippets. These can be used to specify certain hooks in the templates that can be filled by the different npcs, items or skills. This way you can have a special behaviour when picking up an item like adding a quest log message for example.  
+More details can be found [in the wiki](https://github.com/steffendx/GoNorth/wiki/Export-Snippets).
 
 
 ### Wiki Component (Kirja)
@@ -108,7 +120,7 @@ The next steps which I will implement in the future are:
 ## License
 GoNorth is open source and released under the [MIT LICENSE](LICENSE).
 
-Copyright (c) 2018 Steffen Noertershaeuser.
+Copyright (c) 2018, 2019 Steffen Noertershaeuser.
 
 ## Acknowledgement
 GoNorth uses the following libraries:
@@ -118,6 +130,7 @@ GoNorth uses the following libraries:
  * [Knockout](http://knockoutjs.com/) licensed under MIT
  * [Leaflet](http://leafletjs.com/) licensed under BSD-License
  * [Leaflet.draw](https://github.com/Leaflet/Leaflet.draw) licensed under MIT
+ * [Leaflet.TextPath](https://github.com/makinacorpus/Leaflet.TextPath) licensed under MIT
  * [JointJS](https://www.jointjs.com) licensed under Mozilla Public License Version 2.0
  * [SixLabors.ImageSharp](https://github.com/SixLabors/ImageSharp) licensed under Apache License 2.0
  * [Moment](https://github.com/moment/moment) licensed under MIT
@@ -128,7 +141,10 @@ GoNorth uses the following libraries:
  * [bootstrap-wysiwyg](https://github.com/mindmup/bootstrap-wysiwyg) licensed under MIT
  * [bootstrap-tagsinput](https://github.com/bootstrap-tagsinput/bootstrap-tagsinput) licensed under MIT
  * [eonasdan-bootstrap-datetimepicker](https://github.com/Eonasdan/bootstrap-datetimepicker) licensed under MIT
+ * [bootstrap-colorpicker](https://github.com/itsjavi/bootstrap-colorpicker) licensed under Apache License 2.0
  * [Fantasy Name Generator](https://github.com/skeeto/fantasyname) licensed under The Unlicense
  * [Ace Editor](https://ace.c9.io/) licensed under BSD-License
  * [knockout-sortable](https://github.com/rniemeyer/knockout-sortable/) licensed under MIT
  * [htmldiff.js](https://github.com/tnwinc/htmldiff.js) licensed under MIT
+ * [mocha](https://github.com/mochajs/mocha) licensed under MIT
+ * [Puppeteer](https://github.com/GoogleChrome/puppeteer) licensed under Apache License 2.0

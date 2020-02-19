@@ -1,14 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using GoNorth.Data.Project;
 using GoNorth.Services.Timeline;
-using GoNorth.Extensions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -17,7 +12,6 @@ using Microsoft.AspNetCore.Identity;
 using GoNorth.Data.User;
 using GoNorth.Data.Karta;
 using GoNorth.Data.Tale;
-using GoNorth.Data.FlexFieldDatabase;
 using GoNorth.Data.Styr;
 using GoNorth.Data.Kortisto;
 using GoNorth.Data.Aika;
@@ -26,12 +20,14 @@ using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Karta.Marker;
 using GoNorth.Data.Exporting;
 using GoNorth.Services.Security;
+using Microsoft.AspNetCore.Http;
 
 namespace GoNorth.Controllers.Api
 {
     /// <summary>
     /// Styr Api controller
     /// </summary>
+    [ApiController]
     [Authorize(Roles = RoleNames.Styr)]
     [Route("/api/[controller]/[action]")]
     public class StyrApiController : FlexFieldBaseApiController<StyrItem>
@@ -50,6 +46,16 @@ namespace GoNorth.Controllers.Api
         /// Event used for the folder updated event
         /// </summary>
         protected override TimelineEvent FolderUpdatedEvent { get { return TimelineEvent.StyrFolderUpdated; } }
+                
+        /// <summary>
+        /// Event used for the folder moved to folder event
+        /// </summary>
+        protected override TimelineEvent FolderMovedToFolderEvent { get { return TimelineEvent.StyrFolderMovedToFolder; } }
+
+        /// <summary>
+        /// Event used for the folder moved to root level event
+        /// </summary>
+        protected override TimelineEvent FolderMovedToRootEvent { get { return TimelineEvent.StyrFolderMovedToRootFolder; } }
 
 
         /// <summary>
@@ -97,6 +103,16 @@ namespace GoNorth.Controllers.Api
         /// Event used for the flex field object image updated event
         /// </summary>
         protected override TimelineEvent ObjectImageUploadEvent { get { return TimelineEvent.StyrItemImageUpload; } }
+                                
+        /// <summary>
+        /// Event used for the object moved to folder event
+        /// </summary>
+        protected override TimelineEvent ObjectMovedToFolderEvent { get { return TimelineEvent.StyrItemMovedToFolder; } }
+
+        /// <summary>
+        /// Event used for the object moved to root level event
+        /// </summary>
+        protected override TimelineEvent ObjectMovedToRootEvent { get { return TimelineEvent.StyrItemMovedToRoot; } }
 
 
         /// <summary>
@@ -135,6 +151,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
         /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
+        /// <param name="objectExportSnippetDbAccess">Object export snippet Db Access</param>
+        /// <param name="objectExportSnippetSnapshotDbAccess">Object export snippet snapshot Db Access</param>
         /// <param name="imageAccess">Item Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="aikaQuestDbAccess">Aika Quest Db Access</param>
@@ -149,10 +167,10 @@ namespace GoNorth.Controllers.Api
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public StyrApiController(IStyrFolderDbAccess folderDbAccess, IStyrItemTemplateDbAccess templateDbAccess, IStyrItemDbAccess itemDbAccess, IProjectDbAccess projectDbAccess, IStyrItemTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, 
-                                 ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IStyrItemImageAccess imageAccess, IStyrThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, 
-                                 IKartaMapDbAccess kartaMapDbAccess, IKortistoNpcDbAccess kortistoNpcDbAccess, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, IXssChecker xssChecker, 
-                                 ILogger<StyrApiController> logger, IStringLocalizerFactory localizerFactory) 
-                                  : base(folderDbAccess, templateDbAccess, itemDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, exportFunctionIdDbAccess, imageAccess, thumbnailService, userManager, 
+                                 ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IObjectExportSnippetDbAccess objectExportSnippetDbAccess, IObjectExportSnippetSnapshotDbAccess objectExportSnippetSnapshotDbAccess, IStyrItemImageAccess imageAccess, 
+                                 IStyrThumbnailService thumbnailService, IAikaQuestDbAccess aikaQuestDbAccess, ITaleDbAccess taleDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, IKartaMapDbAccess kartaMapDbAccess, IKortistoNpcDbAccess kortistoNpcDbAccess, UserManager<GoNorthUser> userManager, 
+                                 IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, IXssChecker xssChecker, ILogger<StyrApiController> logger, IStringLocalizerFactory localizerFactory) 
+                                  : base(folderDbAccess, templateDbAccess, itemDbAccess, projectDbAccess, tagDbAccess, exportTemplateDbAccess, languageKeyDbAccess, exportFunctionIdDbAccess, objectExportSnippetDbAccess, objectExportSnippetSnapshotDbAccess, imageAccess, thumbnailService, userManager, 
                                          implementationStatusComparer, timelineService, xssChecker, logger, localizerFactory)
         {
             _aikaQuestDbAccess = aikaQuestDbAccess;
@@ -168,6 +186,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="template">Template to create</param>
         /// <returns>Result</returns>
         [Produces(typeof(StyrItem))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -182,6 +201,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the template</param>
         /// <returns>Result Status Code</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
@@ -197,6 +217,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="template">Update template data</param>
         /// <returns>Result Status Code</returns>
         [Produces(typeof(StyrItem))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -211,6 +232,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Template Id</param>
         /// <returns>Task</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -225,6 +247,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the template</param>
         /// <returns>Image Name</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.StyrTemplateManager)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -276,6 +299,13 @@ namespace GoNorth.Controllers.Api
             {
                 string usedInInventories = string.Join(", ", inventoryNpcs.Select(n => n.Name));
                 return _localizer["CanNotDeleteItemUsedInInventory", usedInInventories].Value;
+            }
+
+            List<KortistoNpc> referencedInDailyRoutines = await _kortistoNpcDbAccess.GetNpcsObjectIsReferencedInDailyRoutine(id);
+            if(referencedInDailyRoutines.Count > 0)
+            {
+                string usedInDailyRoutines = string.Join(", ", referencedInDailyRoutines.Select(m => m.Name));
+                return _localizer["CanNotDeleteItemUsedInDailyRoutine", usedInDailyRoutines].Value;
             }
 
             return string.Empty;
@@ -352,6 +382,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="pageSize">Page Size</param>
         /// <returns>Items</returns>
         [Produces(typeof(FlexFieldObjectQueryResult))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.Styr)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [HttpGet]

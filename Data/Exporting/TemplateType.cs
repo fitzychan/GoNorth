@@ -35,6 +35,26 @@ namespace GoNorth.Data.Exporting
         /// </summary>
         ObjectSkillList = 6,
 
+        /// <summary>
+        /// Daily Routine Event List
+        /// </summary>
+        ObjectDailyRoutineEventList = 7,
+
+        /// <summary>
+        /// Daily Routine Function List
+        /// </summary>
+        ObjectDailyRoutineFunctionList = 8,
+        
+        /// <summary>
+        /// Daily Routine Function
+        /// </summary>
+        ObjectDailyRoutineFunction = 9,
+
+        /// <summary>
+        /// Export snippet Function
+        /// </summary>
+        ObjectExportSnippetFunction = 10,
+
 
         /// <summary>
         /// Tale dialog step
@@ -135,6 +155,37 @@ namespace GoNorth.Data.Exporting
         /// Tale Condition npc not learned skill
         /// </summary>  
         TaleConditionNpcNotLearnedSkill = 219,
+
+        /// <summary>
+        /// Tale Condition random value
+        /// </summary>  
+        TaleConditionRandomValue = 220,
+        
+        /// <summary>
+        /// Tale Condition to check if a daily routine event is disabled
+        /// </summary>  
+        TaleConditionDailyRoutineEventDisabled = 221,
+        
+        /// <summary>
+        /// Tale Condition to check if a daily routine event is enabled
+        /// </summary>  
+        TaleConditionDailyRoutineEventEnabled = 222,
+ 
+        /// <summary>
+        /// Tale Condition to run custom code
+        /// </summary>  
+        TaleConditionCode = 223,
+         
+        /// <summary>
+        /// Tale Condition to check an item value
+        /// </summary>  
+        TaleConditionItemValue = 224,
+             
+        /// <summary>
+        /// Tale Condition to check the current skill value
+        /// </summary> 
+        TaleConditionCurrentSkillValue = 225,
+
 
         /// <summary>
         /// Tale Action node
@@ -250,6 +301,156 @@ namespace GoNorth.Data.Exporting
         /// Tale Action player play animation
         /// </summary>
         TaleActionPlayerPlayAnimation = 322,
+    
+        /// <summary>
+        /// Tale Action code action
+        /// </summary>
+        TaleActionCodeAction = 323,
+        
+        /// <summary>
+        /// Tale Action show floating text above npc
+        /// </summary>
+        TaleActionShowFloatingTextAboveNpc = 324,
+        
+        /// <summary>
+        /// Tale Action show floating text above player
+        /// </summary>
+        TaleActionShowFloatingTextAbovePlayer = 325,
+
+        /// <summary>
+        /// Tale Action show floating text above choose npc
+        /// </summary>
+        TaleActionShowFloatingTextAboveChooseNpc = 326,
+        
+        /// <summary>
+        /// Tale Action to fade to black
+        /// </summary>
+        TaleActionFadeToBlack = 327,
+        
+        /// <summary>
+        /// Tale Action to fade to black
+        /// </summary>
+        TaleActionFadeFromBlack = 328,
+
+        /// <summary>
+        /// Tale Action to remove item from npc
+        /// </summary>       
+        TaleActionRemoveItemFromNpc = 329,
+
+        /// <summary>
+        /// Tale Action to remove item from player
+        /// </summary>       
+        TaleActionRemoveItemFromPlayer = 330,
+        
+        /// <summary>
+        /// Tale Action to set the game time
+        /// </summary>       
+        TaleActionSetGameTime = 331,
+
+        /// <summary>
+        /// Tale Action to disable a daily routine event
+        /// </summary>   
+        TaleActionDisableDailyRoutineEvent = 332,
+        
+        /// <summary>
+        /// Tale Action to enable a daily routine event
+        /// </summary>   
+        TaleActionEnableDailyRoutineEvent = 333,
+        
+        /// <summary>
+        /// Tale Action to teleport the npc
+        /// </summary>   
+        TaleActionTeleportNpc = 334,
+        
+        /// <summary>
+        /// Tale Action to teleport the player
+        /// </summary>   
+        TaleActionTeleportPlayer = 335,
+        
+        /// <summary>
+        /// Tale Action to teleport a choosen npc
+        /// </summary>   
+        TaleActionTeleportChooseNpc = 336,
+
+        /// <summary>
+        /// Tale Action to walk the npc
+        /// </summary>   
+        TaleActionWalkNpc = 337,
+
+        /// <summary>
+        /// Tale Action to walk a choosen npc
+        /// </summary>   
+        TaleActionWalkChooseNpc = 338,
+
+        /// <summary>
+        /// Tale Action to teleport an npc to an npc
+        /// </summary> 
+        TaleActionTeleportNpcToNpc = 339,
+
+        /// <summary>
+        /// Tale Action to teleport a choosen npc to an npc
+        /// </summary> 
+        TaleActionTeleportChooseNpcToNpc = 340,
+
+        /// <summary>
+        /// Tale Action to walk an npc to an npc
+        /// </summary> 
+        TaleActionWalkNpcToNpc = 341,
+
+        /// <summary>
+        /// Tale Action to walk a choosen npc to an npc
+        /// </summary> 
+        TaleActionWalkChooseNpcToNpc = 342,
+
+        /// <summary>
+        /// Tale Action to spawn an npc at a marker
+        /// </summary> 
+        TaleActionSpawnNpcAtMarker = 343,
+
+        /// <summary>
+        /// Tale Action to spawn an item at a marker
+        /// </summary> 
+        TaleActionSpawnItemAtMarker = 344,
+
+        /// <summary>
+        /// Tale Action to change an item value
+        /// </summary> 
+        TaleActionChangeItemValue = 345,
+
+        /// <summary>
+        /// Tale Action to change the current skill value
+        /// </summary> 
+        TaleActionChangeCurrentSkillValue = 346,
+
+        /// <summary>
+        /// Tale Action to change the target npc state
+        /// </summary> 
+        TaleActionSetTargetNpcState = 347,
+
+        /// <summary>
+        /// Tale Action to remove an item from a choosen npc
+        /// </summary> 
+        TaleActionRemoveItemFromChooseNpc = 348,
+
+        /// <summary>
+        /// Tale Action to spawn an item in the inventory of a choosen npc
+        /// </summary> 
+        TaleActionSpawnItemForChooseNpc = 349,
+
+        /// <summary>
+        /// Tale Action to have an npc use an item
+        /// </summary> 
+        TaleActionNpcUseItem = 350,
+        
+        /// <summary>
+        /// Tale Action to have the player use an item
+        /// </summary> 
+        TaleActionPlayerUseItem = 351,
+                
+        /// <summary>
+        /// Tale Action to have a choosen npc to use an item
+        /// </summary> 
+        TaleActionChooseNpcUseItem = 352,
 
 
         /// <summary>

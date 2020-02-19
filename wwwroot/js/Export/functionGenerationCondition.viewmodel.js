@@ -615,19 +615,13 @@
                 for(var curElement = 0; curElement < conditionElements.length; ++curElement)
                 {
                     var targetType = GoNorth.DefaultNodeShapes.Conditions.getConditionManager().getConditionType(conditionElements[curElement].conditionType);
-                    var conditionType = GoNorth.Export.FunctionGenerationCondition.conditionTypesByName[targetType.getExportApiType()];
-                    if(typeof conditionType == "undefined")
-                    {
-                        return null;
-                    }
-
                     var convertedElement = targetType.convertDataForExportApi(conditionElements[curElement].conditionData);
                     if(convertedElement == null)
                     {
                         return null;
                     }
 
-                    convertedElement.conditionType = conditionType;
+                    convertedElement.conditionType = targetType.getExportApiType();
                     finalConditionElements.push(convertedElement);
                 }
 
@@ -650,8 +644,7 @@
                         continue;
                     }
 
-                    var mappedConditionType = GoNorth.Export.FunctionGenerationCondition.conditionTypesByName[conditionTypes[curConditionType].getExportApiType()];
-                    conditionTypeMapping[mappedConditionType] = conditionTypes[curConditionType];
+                    conditionTypeMapping[conditionTypes[curConditionType].getExportApiType()] = conditionTypes[curConditionType];
                 }
 
                 var finalConditionElements = [];
@@ -1456,11 +1449,29 @@
         (function(Conditions) {
 
             /**
+             * Finds the condition dialog in a parents list
+             * @param {object[]} parents Knockout parents elements
+             * @returns {object} Condition Dialog context
+             */
+            Conditions.findConditionDialog = function(parents) {
+                for(var curParent = 0; curParent < parents.length; ++curParent)
+                {
+                    if(parents[curParent].isConditionDialogViewModel) {
+                        return parents[curParent];
+                    }
+                }
+
+                return parents[0];
+            }
+
+            /**
              * Condition Dialog Model
              * @class
              */
             Conditions.ConditionDialog = function()
             {
+                this.isConditionDialogViewModel = true;
+
                 this.isOpen = new ko.observable(false);
                 this.condition = null;
                 this.closingDeferred = null;

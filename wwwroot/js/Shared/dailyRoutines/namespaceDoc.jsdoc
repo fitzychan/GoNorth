@@ -1,0 +1,19 @@
+(function(GoNorth) {
+    "use strict";
+
+    /**
+     * Npc daily routines Namespace
+     * @namespace DailyRoutines
+     */
+    (function(DailyRoutines) {
+
+        /**
+        * Daily routines util function namespace
+        * @namespace Util
+        */
+        (function(Util) {
+        }(DailyRoutines.Util = DailyRoutines.Util || {}));
+
+    }(GoNorth.DailyRoutines = GoNorth.DailyRoutines || {}));
+
+}(window.GoNorth = window.GoNorth || {}));

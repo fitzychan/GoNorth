@@ -24,7 +24,7 @@ namespace GoNorth.Controllers.Api
     /// <summary>
     /// Flex Field Base Api Controller Api controller
     /// </summary>
-    public abstract class FlexFieldBaseApiController<T> : Controller where T:FlexFieldObject
+    public abstract class FlexFieldBaseApiController<T> : ControllerBase where T:FlexFieldObject
     {
         /// <summary>
         /// Folder Request data
@@ -106,6 +106,16 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         protected abstract TimelineEvent FolderUpdatedEvent { get; }
 
+        /// <summary>
+        /// Event used for the folder moved to folder event
+        /// </summary>
+        protected abstract TimelineEvent FolderMovedToFolderEvent { get; }
+
+        /// <summary>
+        /// Event used for the folder moved to root level event
+        /// </summary>
+        protected abstract TimelineEvent FolderMovedToRootEvent { get; }
+
 
         /// <summary>
         /// Event used for the template created event
@@ -151,7 +161,17 @@ namespace GoNorth.Controllers.Api
         /// <summary>
         /// Event used for the flex field object image updated event
         /// </summary>
-        protected abstract TimelineEvent ObjectImageUploadEvent { get; }        
+        protected abstract TimelineEvent ObjectImageUploadEvent { get; }   
+        
+        /// <summary>
+        /// Event used for the object moved to folder event
+        /// </summary>
+        protected abstract TimelineEvent ObjectMovedToFolderEvent { get; }
+
+        /// <summary>
+        /// Event used for the object moved to root level event
+        /// </summary>
+        protected abstract TimelineEvent ObjectMovedToRootEvent { get; }     
 
 
         /// <summary>
@@ -195,6 +215,16 @@ namespace GoNorth.Controllers.Api
         private readonly IExportFunctionIdDbAccess _exportFunctionIdDbAccess;
 
         /// <summary>
+        /// Object export snippet Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetDbAccess _objectExportSnippetDbAccess;
+
+        /// <summary>
+        /// Object export snippet snapshot Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetSnapshotDbAccess _objectExportSnippetSnapshotDbAccess;
+
+        /// <summary>
         /// Image Access
         /// </summary>
         private readonly IFlexFieldObjectImageAccess _imageAccess;
@@ -212,12 +242,12 @@ namespace GoNorth.Controllers.Api
         /// <summary>
         /// Timeline Service
         /// </summary>
-        private readonly ITimelineService _timelineService;
+        protected readonly ITimelineService _timelineService;
 
         /// <summary>
         /// User Manager
         /// </summary>
-        private readonly UserManager<GoNorthUser> _userManager;
+        protected readonly UserManager<GoNorthUser> _userManager;
 
         /// <summary>
         /// Xss Checker
@@ -245,6 +275,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
         /// <param name="languageKeyDbAccess">Language Key Db Access</param>
         /// <param name="exportFunctionIdDbAccess">Export Function Id Db Access</param>
+        /// <param name="objectExportSnippetDbAccess">Object export snippet Db Access</param>
+        /// <param name="objectExportSnippetSnapshotDbAccess">Object export snippet snapshot Db Access</param>
         /// <param name="imageAccess">Image Access</param>
         /// <param name="thumbnailService">Thumbnail Service</param>
         /// <param name="userManager">User Manager</param>
@@ -254,8 +286,9 @@ namespace GoNorth.Controllers.Api
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public FlexFieldBaseApiController(IFlexFieldFolderDbAccess folderDbAccess, IFlexFieldObjectDbAccess<T> templateDbAccess, IFlexFieldObjectDbAccess<T> objectDbAccess, IProjectDbAccess projectDbAccess, IFlexFieldObjectTagDbAccess tagDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, 
-                                          ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IFlexFieldObjectImageAccess imageAccess, IFlexFieldThumbnailService thumbnailService, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, 
-                                          ITimelineService timelineService, IXssChecker xssChecker, ILogger<FlexFieldBaseApiController<T>> logger, IStringLocalizerFactory localizerFactory)
+                                          ILanguageKeyDbAccess languageKeyDbAccess, IExportFunctionIdDbAccess exportFunctionIdDbAccess, IObjectExportSnippetDbAccess objectExportSnippetDbAccess, IObjectExportSnippetSnapshotDbAccess objectExportSnippetSnapshotDbAccess, 
+                                          IFlexFieldObjectImageAccess imageAccess, IFlexFieldThumbnailService thumbnailService, UserManager<GoNorthUser> userManager, IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, 
+                                          IXssChecker xssChecker, ILogger<FlexFieldBaseApiController<T>> logger, IStringLocalizerFactory localizerFactory)
         {
             _folderDbAccess = folderDbAccess;
             _templateDbAccess = templateDbAccess;
@@ -265,6 +298,8 @@ namespace GoNorth.Controllers.Api
             _exportTemplateDbAccess = exportTemplateDbAccess;
             _languageKeyDbAccess = languageKeyDbAccess;
             _exportFunctionIdDbAccess = exportFunctionIdDbAccess;
+            _objectExportSnippetDbAccess = objectExportSnippetDbAccess;
+            _objectExportSnippetSnapshotDbAccess = objectExportSnippetSnapshotDbAccess;
             _imageAccess = imageAccess;
             _thumbnailService = thumbnailService;
             _userManager = userManager;
@@ -283,6 +318,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="pageSize">Page Size</param>
         /// <returns>Folders</returns>
         [Produces(typeof(FlexFieldBaseApiController<Data.Kortisto.KortistoNpc>.FolderQueryResult))] // Same for all controllers, simply use Kortisto here
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> Folders(string parentId, int start, int pageSize)
         {
@@ -321,13 +357,14 @@ namespace GoNorth.Controllers.Api
         /// <param name="folder">Folder to create</param>
         /// <returns>Result</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFolder([FromBody]FolderRequest folder)
         {
             if(string.IsNullOrEmpty(folder.Name))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             try
@@ -356,6 +393,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the folder</param>
         /// <returns>Result Status Code</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFolder(string id)
@@ -408,6 +446,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="folder">Update folder data</param>
         /// <returns>Result Status Code</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateFolder(string id, [FromBody]FolderRequest folder)
@@ -422,6 +461,67 @@ namespace GoNorth.Controllers.Api
 
             return Ok(id);
         }
+
+        /// <summary>
+        /// Moves a folder to a folder
+        /// </summary>
+        /// <param name="id">Id of the folder to move</param>
+        /// <param name="newParentId">Id of the folder to move the object to</param>
+        /// <returns>Result</returns>
+        [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveFolderToFolder(string id, string newParentId)
+        {
+            if(string.IsNullOrEmpty(id))
+            {
+                return BadRequest();
+            }
+
+            if(newParentId == null)
+            {
+                newParentId = string.Empty;
+            }
+
+            try
+            {
+                FlexFieldFolder folderToMove = await _folderDbAccess.GetFolderById(id);
+                if(folderToMove == null)
+                {
+                    return NotFound();
+                }
+
+                FlexFieldFolder folderToMoveTo = null;
+                if(!string.IsNullOrEmpty(newParentId))
+                {
+                    folderToMoveTo = await _folderDbAccess.GetFolderById(newParentId);
+                    if(folderToMoveTo == null)
+                    {
+                        return NotFound();
+                    }
+                }
+
+                await _folderDbAccess.MoveToFolder(id, newParentId);
+                
+                TimelineEvent eventToUse = FolderMovedToFolderEvent;
+                if(string.IsNullOrEmpty(newParentId))
+                {
+                    eventToUse = FolderMovedToRootEvent;
+                }
+                await _timelineService.AddTimelineEntry(eventToUse, folderToMove.Name, folderToMove.Id, folderToMoveTo != null ? folderToMoveTo.Name : string.Empty, folderToMoveTo != null ? folderToMoveTo.Id : string.Empty);
+
+                return Ok(id);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Could not move folder {0}", id);
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+        }
+
 
         /// <summary>
         /// Generates the Thumbnail Filename
@@ -439,6 +539,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the flex field folder</param>
         /// <returns>Image Name</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadFolderImage(string id)
@@ -447,14 +549,14 @@ namespace GoNorth.Controllers.Api
             string validateResult = this.ValidateImageUploadData();
             if(validateResult != null)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer[validateResult]);
+                return BadRequest(_localizer[validateResult]);
             }
 
             IFormFile uploadFile = Request.Form.Files[0];
             FlexFieldFolder targetFolder = await _folderDbAccess.GetFolderById(id);
             if(targetFolder == null)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["CouldNotUploadImage"]);
+                return BadRequest(_localizer["CouldNotUploadImage"]);
             }
 
             // Save Image
@@ -504,6 +606,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the template</param>
         /// <returns>Flex Field Template</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> FlexFieldTemplate(string id)
         {
@@ -517,6 +620,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>EntryTemplates</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> FlexFieldTemplates(int start, int pageSize)
         {
@@ -554,14 +658,14 @@ namespace GoNorth.Controllers.Api
         {
             if(string.IsNullOrEmpty(template.Name))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             CheckXssForObject(template);
             
             if(FlexFieldApiUtil.HasDuplicateFieldNames(template.Fields))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
+                return BadRequest(_localizer["DuplicateFieldNameExist"]);
             }
 
             template.ParentFolderId = string.Empty;
@@ -646,7 +750,7 @@ namespace GoNorth.Controllers.Api
         {
             if(FlexFieldApiUtil.HasDuplicateFieldNames(template.Fields))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
+                return BadRequest(_localizer["DuplicateFieldNameExist"]);
             }
 
             CheckXssForObject(template);
@@ -692,7 +796,7 @@ namespace GoNorth.Controllers.Api
             T template = await _templateDbAccess.GetFlexFieldObjectById(id);
             if(template == null)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             List<T> flexFieldObjects = await _objectDbAccess.GetFlexFieldObjectsByTemplate(id);
@@ -734,6 +838,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the flex field object</param>
         /// <returns>Flex field object</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> FlexFieldObject(string id)
         {
@@ -759,6 +864,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Flex Field Objects</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> FlexFieldObjects(string parentId, int start, int pageSize)
         {
@@ -791,6 +897,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="start">Start of the page</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns>Flex field objects</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> SearchFlexFieldObjects(string searchPattern, int start, int pageSize)
         {
@@ -813,6 +920,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="objectIds">Flex field object Ids</param>
         /// <returns>Resolved names</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResolveFlexFieldObjectNames([FromBody]List<string> objectIds)
@@ -826,20 +934,22 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="flexFieldObject">Flex Field object to create</param>
         /// <returns>Result</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFlexFieldObject([FromBody]T flexFieldObject)
         {
             if(string.IsNullOrEmpty(flexFieldObject.Name))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             CheckXssForObject(flexFieldObject);
 
             if(FlexFieldApiUtil.HasDuplicateFieldNames(flexFieldObject.Fields))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
+                return BadRequest(_localizer["DuplicateFieldNameExist"]);
             }
 
             FlexFieldApiUtil.SetFieldIdsForNewFields(flexFieldObject.Fields);
@@ -891,6 +1001,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the flex field object</param>
         /// <returns>Result Status Code</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFlexFieldObject(string id)
@@ -899,7 +1010,7 @@ namespace GoNorth.Controllers.Api
             string referenceError = await CheckObjectReferences(id);
             if(!string.IsNullOrEmpty(referenceError))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, referenceError);
+                return BadRequest(referenceError);
             }
 
             // Delete Object and dialog
@@ -909,6 +1020,8 @@ namespace GoNorth.Controllers.Api
 
             await _languageKeyDbAccess.DeleteAllLanguageKeysInGroup(flexFieldObject.ProjectId, flexFieldObject.Id);
             await _exportFunctionIdDbAccess.DeleteAllExportFunctionIdsForObject(flexFieldObject.ProjectId, flexFieldObject.Id);
+            await _objectExportSnippetDbAccess.DeleteExportSnippetsByObjectId(flexFieldObject.Id);
+            await _objectExportSnippetSnapshotDbAccess.DeleteExportSnippetSnapshotsByObjectId(flexFieldObject.Id);
 
             await DeleteAdditionalFlexFieldObjectDependencies(flexFieldObject);
 
@@ -939,6 +1052,14 @@ namespace GoNorth.Controllers.Api
         protected abstract Task<T> RunAdditionalUpdates(T flexFieldObject, T loadedFlexFieldObject);
 
         /// <summary>
+        /// Checks if an update is valid
+        /// </summary>
+        /// <param name="flexFieldObject">Flex Field Object</param>
+        /// <param name="loadedFlexFieldObject">Loaded Flex Field Object</param>
+        /// <returns>Empty string if update is valid, error string if update is not valid</returns>
+        protected virtual Task<string> CheckUpdateValid(T flexFieldObject, T loadedFlexFieldObject) { return Task.FromResult(string.Empty); }
+
+        /// <summary>
         /// Runs updates on markers
         /// </summary>
         /// <param name="flexFieldObject">Flex Field Object</param>
@@ -956,7 +1077,7 @@ namespace GoNorth.Controllers.Api
         /// Sets the not implemented flag for an object on a relevant change
         /// </summary>
         /// <param name="newState">New State of the object</param>
-        private async Task SetNotImplementedFlagOnChange(T newState)
+        protected async Task SetNotImplementedFlagOnChange(T newState)
         {
             if(!newState.IsImplemented)
             {
@@ -976,6 +1097,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Flex field object Id</param>
         /// <param name="flexFieldObject">Update flex field object data</param>
         /// <returns>Result Status Code</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateFlexFieldObject(string id, [FromBody]T flexFieldObject)
@@ -984,6 +1107,12 @@ namespace GoNorth.Controllers.Api
 
             T loadedFlexFieldObject = await _objectDbAccess.GetFlexFieldObjectById(id);
             
+            string updateErrorMessage = await CheckUpdateValid(flexFieldObject, loadedFlexFieldObject);
+            if(!string.IsNullOrEmpty(updateErrorMessage))
+            {
+                return BadRequest(updateErrorMessage);
+            }
+
             List<string> oldTags = loadedFlexFieldObject.Tags;
             if(oldTags == null)
             {
@@ -996,7 +1125,7 @@ namespace GoNorth.Controllers.Api
 
             if(FlexFieldApiUtil.HasDuplicateFieldNames(flexFieldObject.Fields))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["DuplicateFieldNameExist"]);
+                return BadRequest(_localizer["DuplicateFieldNameExist"]);
             }
 
             FlexFieldApiUtil.SetFieldIdsForNewFields(flexFieldObject.Fields);
@@ -1038,6 +1167,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Id of the flex field object</param>
         /// <returns>Image Name</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FlexFieldImageUpload(string id)
@@ -1068,14 +1198,14 @@ namespace GoNorth.Controllers.Api
             string validateResult = this.ValidateImageUploadData();
             if(validateResult != null)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer[validateResult]);
+                return BadRequest(_localizer[validateResult]);
             }
 
             IFormFile uploadFile = Request.Form.Files[0];
             T targetFlexFieldObject = await dbAccess.GetFlexFieldObjectById(id);
             if(targetFlexFieldObject == null)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["CouldNotUploadImage"]);
+                return BadRequest(_localizer["CouldNotUploadImage"]);
             }
 
             // Save Image
@@ -1129,12 +1259,14 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="imageFile">Image File</param>
         /// <returns>Flex Field Image</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpGet]
         public IActionResult FlexFieldObjectImage(string imageFile)
         {
             if(string.IsNullOrEmpty(imageFile))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             string fileExtension = Path.GetExtension(imageFile);
@@ -1144,8 +1276,74 @@ namespace GoNorth.Controllers.Api
                 return StatusCode((int)HttpStatusCode.InternalServerError);
             }
 
-            Stream imageStream = _imageAccess.OpenFlexFieldObjectImage(imageFile);
-            return File(imageStream, mimeType);
+            try
+            {
+                Stream imageStream = _imageAccess.OpenFlexFieldObjectImage(imageFile);
+                return File(imageStream, mimeType);
+            }
+            catch(FileNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        
+        /// <summary>
+        /// Moves an object to a folder
+        /// </summary>
+        /// <param name="id">Id of the folder to move</param>
+        /// <param name="newParentId">Id of the folder to move the object to</param>
+        /// <returns>Result</returns>
+        [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveObjectToFolder(string id, string newParentId)
+        {
+            if(string.IsNullOrEmpty(id))
+            {
+                return BadRequest();
+            }
+
+            if(newParentId == null)
+            {
+                newParentId = string.Empty;
+            }
+
+            try
+            {
+                T objectToMove = await _objectDbAccess.GetFlexFieldObjectById(id);
+                if(objectToMove == null)
+                {
+                    return NotFound();
+                }
+
+                FlexFieldFolder folderToMoveTo = null;
+                if(!string.IsNullOrEmpty(newParentId))
+                {
+                    folderToMoveTo = await _folderDbAccess.GetFolderById(newParentId);
+                    if(folderToMoveTo == null)
+                    {
+                        return NotFound();
+                    }
+                }
+
+                TimelineEvent eventToUse = ObjectMovedToFolderEvent;
+                if(string.IsNullOrEmpty(newParentId))
+                {
+                    eventToUse = ObjectMovedToRootEvent;
+                }
+
+                await _objectDbAccess.MoveToFolder(id, newParentId);
+                await _timelineService.AddTimelineEntry(eventToUse, objectToMove.Name, objectToMove.Id, folderToMoveTo != null ? folderToMoveTo.Name : string.Empty, folderToMoveTo != null ? folderToMoveTo.Id : string.Empty);
+                return Ok(id);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Could not move folder {0}", id);
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
         }
 
 
@@ -1154,6 +1352,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <returns>All flex field object Tags</returns>
         [Produces(typeof(List<string>))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> FlexFieldObjectTags()
         {

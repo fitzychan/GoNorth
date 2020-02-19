@@ -8,11 +8,12 @@ using GoNorth.Data.Karta;
 using GoNorth.Data.Kirja;
 using GoNorth.Data.Kortisto;
 using GoNorth.Data.Project;
+using GoNorth.Data.ProjectConfig;
 using GoNorth.Data.Styr;
-using GoNorth.Data.Tale;
 using GoNorth.Data.TaskManagement;
 using GoNorth.Services.Timeline;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -22,9 +23,10 @@ namespace GoNorth.Controllers.Api
     /// <summary>
     /// Project Api controller
     /// </summary>
+    [ApiController]
     [Authorize(Roles = RoleNames.Administrator)]
     [Route("/api/[controller]/[action]")]
-    public class ProjectApiController : Controller
+    public class ProjectApiController : ControllerBase
     {
         /// <summary>
         /// Project Db Service
@@ -97,9 +99,9 @@ namespace GoNorth.Controllers.Api
         private readonly IExportTemplateDbAccess _exportTemplateDbAccess;
 
         /// <summary>
-        /// Tale Config Db Access
+        /// Project Config Db Access
         /// </summary>
-        private readonly ITaleConfigDbAccess _taleConfigDbAccess;
+        private readonly IProjectConfigDbAccess _projectConfigDbAccess;
 
         /// <summary>
         /// Timeline Service
@@ -133,13 +135,13 @@ namespace GoNorth.Controllers.Api
         /// <param name="userTaskBoardHistoryDbAccess">User Task board history db access</param>
         /// <param name="exportSettingsDbAccess">Export Settings Db Access</param>
         /// <param name="exportTemplateDbAccess">Export Template Db Access</param>
-        /// <param name="taleConfigDbAccess">Tale Config Db Access</param>
+        /// <param name="projectConfigDbAccess">Project Config Db Access</param>
         /// <param name="timelineService">Timeline Service</param>
         /// <param name="logger">Logger</param>
         /// <param name="localizerFactory">Localizer Factory</param>
         public ProjectApiController(IProjectDbAccess projectDbAccess, IKortistoFolderDbAccess kortistoFolderDbAccess, IKortistoNpcDbAccess npcDbAccess, IStyrFolderDbAccess styrFolderDbAccess, IStyrItemDbAccess itemDbAccess, IKirjaPageDbAccess kirjaPageDbAccess, 
                                     IAikaChapterDetailDbAccess chapterDetailDbAccess, IAikaQuestDbAccess questDbAccess, IKartaMapDbAccess mapDbAccess, ITaskBoardDbAccess taskBoardDbAccess, ITaskNumberDbAccess taskNumberDbAccess, IUserTaskBoardHistoryDbAccess userTaskBoardHistoryDbAccess, 
-                                    IExportSettingsDbAccess exportSettingsDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, ITaleConfigDbAccess taleConfigDbAccess, ITimelineService timelineService, ILogger<ProjectApiController> logger, IStringLocalizerFactory localizerFactory)
+                                    IExportSettingsDbAccess exportSettingsDbAccess, IExportTemplateDbAccess exportTemplateDbAccess, IProjectConfigDbAccess projectConfigDbAccess, ITimelineService timelineService, ILogger<ProjectApiController> logger, IStringLocalizerFactory localizerFactory)
         {
             _projectDbAccess = projectDbAccess;
             _kortistoFolderDbAccess = kortistoFolderDbAccess;
@@ -155,7 +157,7 @@ namespace GoNorth.Controllers.Api
             _userTaskBoardHistoryDbAccess = userTaskBoardHistoryDbAccess;
             _exportSettingsDbAccess = exportSettingsDbAccess;
             _exportTemplateDbAccess = exportTemplateDbAccess;
-            _taleConfigDbAccess = taleConfigDbAccess;
+            _projectConfigDbAccess = projectConfigDbAccess;
             _timelineService = timelineService;
             _logger = logger;
             _localizer = localizerFactory.Create(typeof(ProjectApiController));
@@ -166,6 +168,7 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <returns>Project Entries</returns>
         [Produces(typeof(List<GoNorthProject>))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> Entries()
         {
@@ -180,13 +183,15 @@ namespace GoNorth.Controllers.Api
         /// <param name="project">Project to create</param>
         /// <returns>Result</returns>
         [Produces(typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateProject([FromBody]GoNorthProject project)
         {
             if(string.IsNullOrEmpty(project.Name))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             try
@@ -207,7 +212,9 @@ namespace GoNorth.Controllers.Api
         /// </summary>
         /// <param name="id">Id of the project</param>
         /// <returns>Result Status Code</returns>
-        [Produces(typeof(string))]        
+        [Produces(typeof(string))]      
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]  
         [HttpDelete]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteProject(string id)
@@ -217,7 +224,7 @@ namespace GoNorth.Controllers.Api
             if(!isProjectEmpty)
             {
                 _logger.LogInformation("Attempted to delete non empty project {0}.", project.Name);
-                return StatusCode((int)HttpStatusCode.BadRequest, _localizer["ProjectNotEmpty"].Value);
+                return BadRequest(_localizer["ProjectNotEmpty"].Value);
             }
 
             await _projectDbAccess.DeleteProject(project);
@@ -262,9 +269,17 @@ namespace GoNorth.Controllers.Api
             }
 
             int kirjaPageCount = await _kirjaPageDbAccess.SearchPagesCount(project.Id, string.Empty, string.Empty);
-            if(kirjaPageCount > 0)
+            if(kirjaPageCount > 1)
             {
                 return false;
+            }
+            else if(kirjaPageCount == 1)
+            {
+                KirjaPage defaultPage = await _kirjaPageDbAccess.GetDefaultPageForProject(project.Id);
+                if(defaultPage == null)
+                {
+                    return false;
+                }
             }
 
             int chapterDetailCount = await _chapterDetailDbAccess.GetChapterDetailsByProjectIdCount(project.Id);
@@ -306,7 +321,8 @@ namespace GoNorth.Controllers.Api
             await _userTaskBoardHistoryDbAccess.DeleteUserTaskBoardHistoryForProject(project.Id);
             await _exportTemplateDbAccess.DeleteTemplatesForProject(project.Id);
             await _exportSettingsDbAccess.DeleteExportSettings(project.Id);
-            await _taleConfigDbAccess.DeleteConfigsForProject(project.Id);
+            await _projectConfigDbAccess.DeleteConfigsForProject(project.Id);
+            await _kirjaPageDbAccess.DeletePagesForProject(project.Id);
         }
 
 
@@ -316,7 +332,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="id">Project Id</param>
         /// <param name="project">Update project data</param>
         /// <returns>Result Status Code</returns>
-        [Produces(typeof(string))]        
+        [Produces(typeof(string))]       
+        [ProducesResponseType(StatusCodes.Status200OK)] 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateProject(string id, [FromBody]GoNorthProject project)

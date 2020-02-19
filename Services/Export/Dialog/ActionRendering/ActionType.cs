@@ -49,6 +49,11 @@ namespace GoNorth.Services.Export.Dialog.ActionRendering
         /// Add quest text
         /// </summary>
         AddQuestText = 10,
+
+        /// <summary>
+        /// Change the current skill value
+        /// </summary>
+        ChangeCurrentSkillValue = 13,
         
         /// <summary>
         /// Wait
@@ -59,6 +64,11 @@ namespace GoNorth.Services.Export.Dialog.ActionRendering
         /// Change Player State
         /// </summary>
         ChangePlayerState = 15,
+
+        /// <summary>
+        /// Change target npc State
+        /// </summary>
+        ChangeTargetNpcState = 16,
 
         /// <summary>
         /// Change Npc State
@@ -113,6 +123,146 @@ namespace GoNorth.Services.Export.Dialog.ActionRendering
         /// <summary>
         /// Play player animation
         /// </summary>
-        PlayPlayerAnimation = 27
+        PlayPlayerAnimation = 27,
+
+        /// <summary>
+        /// Code action
+        /// </summary>
+        CodeAction = 28,
+        
+        /// <summary>
+        /// Show floating text above npc
+        /// </summary>
+        ShowFloatingTextAboveNpc = 29,
+        
+        /// <summary>
+        /// Show floating text above player
+        /// </summary>
+        ShowFloatingTextAbovePlayer = 30,
+        
+        /// <summary>
+        /// Show floating text above choose npc
+        /// </summary>
+        ShowFloatingTextAboveChooseNpc = 31,
+
+        /// <summary>
+        /// Fade to black
+        /// </summary>
+        FadeToBlack = 32,
+
+        /// <summary>
+        /// Fade from black
+        /// </summary>
+        FadeFromBlack = 33,
+
+        /// <summary>
+        /// Remove an item from the npc inventory
+        /// </summary>
+        RemoveItemFromNpcInventory = 34,
+
+        /// <summary>
+        /// Remove an item from the player inventory
+        /// </summary>
+        RemoveItemFromPlayerInventory = 35,
+
+        /// <summary>
+        /// Sets the game time
+        /// </summary>
+        SetGameTime = 36,
+
+        /// <summary>
+        /// Disables a daily routine event
+        /// </summary>
+        DisableDailyRoutineEvent = 37,
+
+        /// <summary>
+        /// Enables a daily routine event
+        /// </summary>
+        EnableDailyRoutineEvent = 38,
+
+        /// <summary>
+        /// Teleport npc
+        /// </summary>
+        TeleportNpc = 39,
+
+        /// <summary>
+        /// Teleport player
+        /// </summary>
+        TeleportPlayer = 40,
+
+        /// <summary>
+        /// Teleport choose npc
+        /// </summary>
+        TeleportChooseNpc = 41,
+        
+        /// <summary>
+        /// Walk npc to marker
+        /// </summary>
+        WalkNpcToMarker = 42,
+
+        /// <summary>
+        /// Walk choose npc to marker
+        /// </summary>
+        WalkChooseNpcToMarker = 43,
+
+        /// <summary>
+        /// Teleport npc to npc
+        /// </summary>
+        TeleportNpcToNpc = 44,
+
+        /// <summary>
+        /// Teleport choose npc to npc
+        /// </summary>
+        TeleportChooseNpcToNpc = 45,
+
+        /// <summary>
+        /// Walk npc to npc
+        /// </summary>
+        WalkNpcToNpc = 46,
+
+        /// <summary>
+        /// Walk choose npc to npc
+        /// </summary>
+        WalkChooseNpcToNpc = 47,
+
+        /// <summary>
+        /// Spawn an npc at marker
+        /// </summary>
+        SpawnNpcAtMarker = 48,
+        
+        /// <summary>
+        /// Spawn an item at marker
+        /// </summary>
+        SpawnItemAtMarker = 49,
+        
+        /// <summary>
+        /// Change an item value
+        /// </summary>
+        ChangeItemValue = 50,
+        
+        /// <summary>
+        /// Spawn item in the inventory of a chosen npc
+        /// </summary>
+        SpawnItemInChooseNpcInventory = 51,
+        
+        /// <summary>
+        /// Remove item from the inventory of a chosen npc
+        /// </summary>
+        RemoveItemFromChooseNpcInventory = 52,
+        
+        /// <summary>
+        /// Npc uses an it em
+        /// </summary>
+        NpcUseItem = 53,
+        
+        /// <summary>
+        /// Player uses an item
+        /// </summary>
+        PlayerUseItem = 54,
+        
+        /// <summary>
+        /// A chosen npc uses an item
+        /// </summary>
+        ChooseNpcUseItem = 55
     }
 }

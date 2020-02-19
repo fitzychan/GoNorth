@@ -51,6 +51,46 @@
                 "ActionType": "PersistDialogState"
             }
         ]
+    },
+    {
+        "ConditionElements": [
+            {
+                "ConditionType": "ParentActionType",
+                "ActionType": "Wait"
+            }
+        ]
+    },
+    {
+        "ConditionElements": [
+            {
+                "ConditionType": "ParentActionType",
+                "ActionType": "WalkNpcToMarker"
+            }
+        ]
+    },
+    {
+        "ConditionElements": [
+            {
+                "ConditionType": "ParentActionType",
+                "ActionType": "WalkChooseNpcToMarker"
+            }
+        ]
+    },
+    {
+        "ConditionElements": [
+            {
+                "ConditionType": "ParentActionType",
+                "ActionType": "WalkNpcToNpc"
+            }
+        ]
+    },
+    {
+        "ConditionElements": [
+            {
+                "ConditionType": "ParentActionType",
+                "ActionType": "WalkChooseNpcToNpc"
+            }
+        ]
     }],
     "PreventGenerationRules": []
 }

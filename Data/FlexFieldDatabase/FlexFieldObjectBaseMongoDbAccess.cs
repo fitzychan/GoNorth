@@ -202,6 +202,32 @@ namespace GoNorth.Data.FlexFieldDatabase
         {
             return await _ObjectCollection.AsQueryable().Where(n => n.TemplateId == templateId).ToListAsync();
         }
+        
+        /// <summary>
+        /// Returns all flex field objects that are not part of an id list. This means that they are not part of the list themselfs and or their template
+        /// </summary>
+        /// <param name="idList">List of ids</param>
+        /// <returns>Flex field objects</returns>
+        public async Task<List<T>> GetFlexFieldObjectsNotPartOfIdList(IEnumerable<string> idList)
+        {
+            return await _ObjectCollection.AsQueryable().Where(n => !idList.Contains(n.TemplateId) && !idList.Contains(n.Id)).Select(c => new T() {
+                Id = c.Id,
+                Name = c.Name,
+            }).ToListAsync();
+        }
+        
+        /// <summary>
+        /// Returns all flex field objects that are part of an id list. This means that they are not part of the list themselfs and or their template
+        /// </summary>
+        /// <param name="idList">List of ids</param>
+        /// <returns>Flex field objects</returns>
+        public async Task<List<T>> GetFlexFieldObjectsPartOfIdList(IEnumerable<string> idList)
+        {
+            return await _ObjectCollection.AsQueryable().Where(n => idList.Contains(n.TemplateId) || idList.Contains(n.Id)).Select(c => new T() {
+                Id = c.Id,
+                Name = c.Name,
+            }).ToListAsync();
+        }
 
         /// <summary>
         /// Resolves the names for a list of Flex Field Objects
@@ -224,6 +250,18 @@ namespace GoNorth.Data.FlexFieldDatabase
         public async Task UpdateFlexFieldObject(T flexFieldObject)
         {
             ReplaceOneResult result = await _ObjectCollection.ReplaceOneAsync(n => n.Id == flexFieldObject.Id, flexFieldObject);
+        }
+
+        /// <summary>
+        /// Moves an object to a folder
+        /// </summary>
+        /// <param name="objectId">Object to move</param>
+        /// <param name="targetFolderId">Id of the folder to move the object to</param>
+        /// <returns>Task</returns>
+        public async Task MoveToFolder(string objectId, string targetFolderId)
+        {
+            await _ObjectCollection.UpdateOneAsync(Builders<T>.Filter.Eq(f => f.Id, objectId), 
+                                                   Builders<T>.Update.Set(p => p.ParentFolderId, targetFolderId));
         }
 
         /// <summary>
@@ -276,6 +314,43 @@ namespace GoNorth.Data.FlexFieldDatabase
         public async Task<List<T>> GetFlexFieldObjectsByModifiedUser(string userId)
         {
             return await _ObjectCollection.AsQueryable().Where(n => n.ModifiedBy == userId).ToListAsync();
+        }
+                
+        /// <summary>
+        /// Returns all objects in Recycle bin that were last modified by a given user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Objects</returns>
+        public async Task<List<T>> GetRecycleBinFlexFieldObjectsByModifiedUser(string userId)
+        {
+            IMongoCollection<T> recyclingBin = _Database.GetCollection<T>(_RecylingBinCollectionName);
+
+            return await recyclingBin.AsQueryable().Where(b => b.ModifiedBy == userId).ToListAsync();
+        }
+
+        /// <summary>
+        /// Resets all objects in the Recycle bin that were modified by a user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Task</returns>
+        public async Task ResetRecycleBinFlexFieldObjectsByModifiedUser(string userId)
+        {
+            IMongoCollection<T> recyclingBin = _Database.GetCollection<T>(_RecylingBinCollectionName);
+            await recyclingBin.UpdateManyAsync(n => n.ModifiedBy == userId, Builders<T>.Update.Set(n => n.ModifiedBy, Guid.Empty.ToString()).Set(n => n.ModifiedOn, DateTimeOffset.UtcNow));
+        }
+
+        /// <summary>
+        /// Resolves the names for a list of Flex Field Objects in the Recycle bin
+        /// </summary>
+        /// <param name="flexFieldObjectIds">Flex Field Object Ids</param>
+        /// <returns>Resolved Flex Field Objects with names</returns>
+        public async Task<List<T>> ResolveRecycleBinFlexFieldObjectNames(List<string> flexFieldObjectIds)
+        {
+            IMongoCollection<T> recyclingBin = _Database.GetCollection<T>(_RecylingBinCollectionName);
+            return await  recyclingBin.AsQueryable().Where(n => flexFieldObjectIds.Contains(n.Id)).Select(c => new T() {
+                Id = c.Id,
+                Name = c.Name,
+            }).ToListAsync();
         }
     }
 }

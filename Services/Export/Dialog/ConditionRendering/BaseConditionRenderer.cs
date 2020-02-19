@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using GoNorth.Data.Exporting;
-using GoNorth.Data.Kortisto;
+using GoNorth.Data.FlexFieldDatabase;
 using GoNorth.Data.Project;
 using GoNorth.Services.Export.Placeholder;
-using Newtonsoft.Json;
 
 namespace GoNorth.Services.Export.Dialog.ConditionRendering
 {
@@ -19,13 +19,17 @@ namespace GoNorth.Services.Export.Dialog.ConditionRendering
         /// <param name="condition">Current Condition</param>
         /// <param name="project">Project</param>
         /// <param name="errorCollection">Error Collection</param>
-        /// <param name="npc">Npc to which the dialog belongs</param>
+        /// <param name="flexFieldObject">Flex field object to which the dialog belongs</param>
         /// <param name="exportSettings">Export Settings</param>
         /// <returns>Condition Build Result</returns>
-        public string BuildSingleConditionElement(ParsedConditionData condition, GoNorthProject project, ExportPlaceholderErrorCollection errorCollection, KortistoNpc npc, ExportSettings exportSettings)
+        public string BuildSingleConditionElement(ParsedConditionData condition, GoNorthProject project, ExportPlaceholderErrorCollection errorCollection, FlexFieldObject flexFieldObject, ExportSettings exportSettings)
         {
-            T parsedData = condition.ConditionData.ToObject<T>();
-            return BuildConditionElementFromParsedData(parsedData, project, errorCollection, npc, exportSettings);
+            JsonSerializerOptions jsonOptions = new JsonSerializerOptions();
+            jsonOptions.Converters.Add(new JsonStringEnumConverter());
+            jsonOptions.PropertyNameCaseInsensitive = true;
+
+            T parsedData = JsonSerializer.Deserialize<T>(condition.ConditionData.GetRawText(), jsonOptions);
+            return BuildConditionElementFromParsedData(parsedData, project, errorCollection, flexFieldObject, exportSettings);
         }
 
         /// <summary>
@@ -34,10 +38,10 @@ namespace GoNorth.Services.Export.Dialog.ConditionRendering
         /// <param name="parsedData">Parsed data</param>
         /// <param name="project">Project</param>
         /// <param name="errorCollection">Error Collection</param>
-        /// <param name="npc">Npc to which the dialog belongs</param>
+        /// <param name="flexFieldObject">Flex field object to which the dialog belongs</param>
         /// <param name="exportSettings">Export Settings</param>
         /// <returns>Condition string</returns>
-        public abstract string BuildConditionElementFromParsedData(T parsedData, GoNorthProject project, ExportPlaceholderErrorCollection errorCollection, KortistoNpc npc, ExportSettings exportSettings);
+        public abstract string BuildConditionElementFromParsedData(T parsedData, GoNorthProject project, ExportPlaceholderErrorCollection errorCollection, FlexFieldObject flexFieldObject, ExportSettings exportSettings);
 
         /// <summary>
         /// Returns true if the condition element renderer has placeholders for a template type

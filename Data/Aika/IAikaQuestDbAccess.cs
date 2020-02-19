@@ -71,7 +71,7 @@ namespace GoNorth.Data.Aika
         /// <param name="objectId">Object Id</param>
         /// <returns>All Quests object is referenced in without detail information</returns>
         Task<List<AikaQuest>> GetQuestsObjectIsReferenced(string objectId);
-
+        
         /// <summary>
         /// Resolves the names for a list of Quests
         /// </summary>
@@ -107,5 +107,19 @@ namespace GoNorth.Data.Aika
         /// <param name="userId">Id of the user</param>
         /// <returns>Quests</returns>
         Task<List<AikaQuest>> GetQuestsByModifiedUser(string userId);
+
+        /// <summary>
+        /// Returns all quests in the recycle bin that were last modified by a given user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Quest</returns>
+        Task<List<AikaQuest>> GetRecycleBinQuestsByModifiedUser(string userId);
+
+        /// <summary>
+        /// Returns all quests in the recycle bin that were last modified by a given user
+        /// </summary>
+        /// <param name="userId">Id of the user</param>
+        /// <returns>Task</returns>
+        Task ResetRecycleBinQuestByModifiedUser(string userId);
     }
 }

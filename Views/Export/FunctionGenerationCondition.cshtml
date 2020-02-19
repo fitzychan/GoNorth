@@ -52,7 +52,7 @@
 
     <!-- Function Generation Condition List -->
     <script type="text/html" id="gn-functionGenerationConditionList">
-        <button class="btn btn-primary gn-commandWidgetTopMargin" type="button" data-bind="click: function(ruleArrayObj) { $root.createNewRule(ruleArrayObj.rules) }, disable: $root.isReadonly() || $root.isLoading()"><i class="glyphicon glyphicon-plus"></i> @Localizer["AddRule"]</button>
+        <button class="btn btn-primary gn-commandWidgetTopMargin gn-functionGenerationConditionListNewRuleButton" type="button" data-bind="click: function(ruleArrayObj) { $root.createNewRule(ruleArrayObj.rules) }, disable: $root.isReadonly() || $root.isLoading()"><i class="glyphicon glyphicon-plus"></i> @Localizer["AddRule"]</button>
         <div class="gn-defaultContentTopMargin">
             <div class="row gn-gridTableRow">
                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 gn-gridTableHeader gn-gridTableCell">
@@ -104,14 +104,6 @@
     </environment>
 
     <script type="text/javascript">
-        GoNorth.Export.FunctionGenerationCondition.conditionTypesByName = {};
-        @foreach(MappedDialogFunctionGenerationConditionType curConditionType in @Model.DialogFunctionGenerationConditionTypes)
-        {
-            <text>
-            GoNorth.Export.FunctionGenerationCondition.conditionTypesByName["@curConditionType.Name"] = @curConditionType.Value;
-            </text>
-        }
-
         GoNorth.Export.FunctionGenerationCondition.localizedNodeTypes = {};
         GoNorth.Export.FunctionGenerationCondition.nodeTypes = [];
         @foreach(string curNodeType in Model.NodeTypes)
@@ -130,9 +122,9 @@
         @foreach(MappedDialogFunctionGenerationActionType curActionType in Model.DialogFunctionGenerationActionTypes)
         {
             <text>
-            GoNorth.Export.FunctionGenerationCondition.localizedActionTypes[@curActionType.Value] = "@Localizer["ActionType" + @curActionType.Name]";
+            GoNorth.Export.FunctionGenerationCondition.localizedActionTypes["@curActionType.Name"] = "@Localizer["ActionType" + @curActionType.Name]";
             GoNorth.Export.FunctionGenerationCondition.actionTypes.push({
-                actionType: @curActionType.Value,
+                actionType: "@curActionType.Name",
                 displayName: "@Localizer["ActionType" + @curActionType.Name]"
             });
             </text>

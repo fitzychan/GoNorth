@@ -1,12 +1,9 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using GoNorth.Data;
-using GoNorth.Models;
 using GoNorth.Services.Email;
 using GoNorth.Services.Encryption;
 using GoNorth.Data.User;
@@ -39,16 +36,25 @@ using GoNorth.Services.User;
 using GoNorth.Data.Evne;
 using GoNorth.Services.FlexFieldThumbnail;
 using GoNorth.Data.Exporting;
-using GoNorth.Services.Export;
 using GoNorth.Services.Export.Placeholder;
 using GoNorth.Services.Export.LanguageKeyGeneration;
 using GoNorth.Services.Export.Dialog;
 using GoNorth.Services.Export.Data;
 using GoNorth.Services.Security;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Swagger;
 using System.Reflection;
 using System.IO;
+using GoNorth.Data.ProjectConfig;
+using GoNorth.Services.ProjectConfig;
+using GoNorth.Services.Export.NodeGraphExport;
+using GoNorth.Services.Export.TemplateParsing;
+using GoNorth.Services.Export.ExportSnippets;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
+using GoNorth.Services.DataMigration;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace GoNorth
 {
@@ -98,6 +104,39 @@ namespace GoNorth
                AddUserStore<GoNorthUserStore>().AddRoleStore<GoNorthRoleStore>().AddErrorDescriber<GoNorthIdentityErrorDescriber>().
                AddUserValidator<GoNorthUserValidator>().AddDefaultTokenProviders();
             
+            
+            // Ensure that the correct status is returned for api calls
+            services.ConfigureApplicationCookie(o =>
+            {
+                o.Events = new CookieAuthenticationEvents()
+                {
+                    OnRedirectToLogin = (ctx) =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 401;
+                        }
+                        else
+                        {
+                            ctx.Response.Redirect(ctx.RedirectUri);
+                        }
+                        return Task.CompletedTask;
+                    },
+                    OnRedirectToAccessDenied = (ctx) =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 403;
+                        }
+                        else
+                        {
+                            ctx.Response.Redirect(ctx.RedirectUri);
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
             if(configData.Misc.UseGdpr)
             {
                 services.Configure<CookiePolicyOptions>(options =>
@@ -116,6 +155,8 @@ namespace GoNorth
 
             // Application services
             services.AddTransient<IConfigViewAccess, AppSettingsConfigViewAccess>();
+
+            services.AddTransient<IProjectConfigProvider, ProjectConfigProvider>();
 
             services.AddTransient<IEmailSender, EmailSender>();
             services.AddTransient<IEncryptionService, AesEncryptionService>();
@@ -155,14 +196,28 @@ namespace GoNorth
             services.AddTransient<IExportDialogFunctionGenerator, ExportDialogFunctionGenerator>();
             services.AddTransient<IExportDialogRenderer, ExportDialogRenderer>();
             services.AddScoped<ILanguageKeyGenerator, LanguageKeyGenerator>();
+            services.AddScoped<ILanguageKeyReferenceCollector, LanguageKeyReferenceCollector>();
             services.AddScoped<IExportDialogFunctionNameGenerator, ExportDialogFunctionNameGenerator>();
+            services.AddScoped<IDailyRoutineFunctionNameGenerator, DailyRoutineFunctionNameGenerator>();
             services.AddTransient<IConditionRenderer, ConditionRenderer>();
+            services.AddTransient<IDailyRoutineEventPlaceholderResolver, DailyRoutineEventPlaceholderResolver>();
+            services.AddTransient<IDailyRoutineEventContentPlaceholderResolver, DailyRoutineEventContentPlaceholderResolver>();
+            services.AddTransient<IDailyRoutineNodeGraphRenderer, DailyRoutineNodeGraphRenderer>();
+            services.AddTransient<IDailyRoutineNodeGraphFunctionGenerator, DailyRoutineNodeGraphFunctionGenerator>();
             services.AddScoped<IExportCachedDbAccess, ExportCachedDbAccess>();
+            services.AddTransient<INodeGraphExporter, NodeGraphExporter>();
+            services.AddTransient<INodeGraphParser, NodeGraphParser>();
+            services.AddTransient<IExportSnippetParser, ExportSnippetParser>();
+            services.AddTransient<IExportTemplateParser, ExportTemplateParser>();
+            services.AddTransient<IExportSnippetFunctionNameGenerator, ExportSnippetFunctionNameGenerator>();
+            services.AddTransient<IExportSnippetNodeGraphFunctionGenerator, ExportSnippetNodeGraphFunctionGenerator>();
+            services.AddTransient<IExportSnippetNodeGraphRenderer, ExportSnippetNodeGraphRenderer>();
+            services.AddTransient<IExportSnippetRelatedObjectUpdater, ExportSnippetRelatedObjectUpdater>();
 
             services.AddScoped<GoNorthUserManager>();
 
             services.AddScoped<IUserClaimsPrincipalFactory<GoNorthUser>, GoNorthUserClaimsPrincipalFactory>();
-
+            
             // Database
             services.AddScoped<ILockServiceDbAccess, LockServiceMongoDbAccess>();
             services.AddScoped<IUserDbAccess, UserMongoDbAccess>();
@@ -170,6 +225,8 @@ namespace GoNorth
             services.AddScoped<IRoleDbAccess, RoleMongoDbAccess>();
             services.AddScoped<ITimelineDbAccess, TimelineMongoDbAccess>();
             services.AddScoped<IProjectDbAccess, ProjectMongoDbAccess>();
+
+            services.AddScoped<IProjectConfigDbAccess, ProjectConfigMongoDbAccess>();
 
             services.AddScoped<IKortistoFolderDbAccess, KortistoFolderMongoDbAccess>();
             services.AddScoped<IKortistoNpcTemplateDbAccess, KortistoNpcTemplateMongoDbAccess>();
@@ -196,7 +253,6 @@ namespace GoNorth
             services.AddScoped<IKartaMarkerImplementationSnapshotDbAccess, KartaMarkerImplementationSnapshotMongoDbAccess>();
 
             services.AddScoped<ITaleDbAccess, TaleMongoDbAccess>();
-            services.AddScoped<ITaleConfigDbAccess, TaleConfigMongoDbAccess>();
             services.AddScoped<ITaleDialogImplementationSnapshotDbAccess, TaleDialogImplementationSnapshotMongoDbAccess>();
 
             services.AddScoped<IAikaChapterOverviewDbAccess, AikaChapterOverviewMongoDbAccess>();
@@ -211,6 +267,8 @@ namespace GoNorth
             services.AddScoped<IDialogFunctionGenerationConditionDbAccess, DialogFunctionGenerationConditionMongoDbAccess>();
             services.AddScoped<IDialogFunctionGenerationConditionProvider, DialogFunctionGenerationConditionProvider>();
             services.AddScoped<IExportFunctionIdDbAccess, ExportFunctionIdMongoDbAccess>();
+            services.AddScoped<IObjectExportSnippetDbAccess, ObjectExportSnippetMongoDbAccess>();
+            services.AddScoped<IObjectExportSnippetSnapshotDbAccess, ObjectExportSnippetSnapshotMongoDbAccess>();
 
             services.AddScoped<ILanguageKeyDbAccess, LanguageKeyMongoDbAccess>();
 
@@ -242,7 +300,10 @@ namespace GoNorth
                 options.SupportedUICultures = supportedCultures;
             });
 
-            services.AddMvc().AddViewLocalization().AddDataAnnotationsLocalization().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);;
+            services.AddMvcCore().AddViewLocalization().AddMvcLocalization().AddApiExplorer().AddAuthorization().AddRazorPages().AddJsonOptions(jsonOptions => {
+                jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                jsonOptions.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
             // Configuration
             services.Configure<ConfigurationData>(Configuration);
@@ -250,19 +311,19 @@ namespace GoNorth
             // Register the Swagger generator
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info 
+                c.SwaggerDoc("v1", new OpenApiInfo 
                     { 
                         Title = "GoNorth API", 
                         Version = "v1",
                         Description = "A portal to build storys for RPGs and other open world games.",
-                        Contact = new Contact
+                        Contact = new OpenApiContact
                         {
                             Name = "Steffen Nörtershäuser"
                         },
-                        License = new License
+                        License = new OpenApiLicense
                         {
                             Name = "Use under MIT",
-                            Url = "https://github.com/steffendx/GoNorth/blob/master/LICENSE"
+                            Url = new Uri("https://github.com/steffendx/GoNorth/blob/master/LICENSE")
                         }
                     });
 
@@ -271,6 +332,8 @@ namespace GoNorth
                 string commentsFile = Path.Combine(baseDirectory, commentsFileName);
                 c.IncludeXmlComments(commentsFile);
             });
+
+            services.AddHostedService<AutoDataMigrator>();
         }
 
         /// <summary>
@@ -278,7 +341,7 @@ namespace GoNorth
         /// </summary>
         /// <param name="app">Application builder</param>
         /// <param name="env">Hosting environment</param>
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             ConfigurationData configData = Configuration.Get<ConfigurationData>();
             
@@ -286,7 +349,6 @@ namespace GoNorth
             {
                 EnvironmentSettings.IsDevelopment = true;
                 app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();
             }
             else
             {
@@ -308,7 +370,15 @@ namespace GoNorth
                 app.UseCookiePolicy();
             }
 
+            app.UseRouting();
+
             app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints => {
+                endpoints.MapDefaultControllerRoute();
+                endpoints.MapRazorPages();
+            });
 
             if(env.IsDevelopment())
             {
@@ -319,11 +389,6 @@ namespace GoNorth
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "GoNorth Api");
                 });
             }
-
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(name: "default", template: "{controller=Home}/{action=Index}/{id?}");
-            });
         }
     }
 }

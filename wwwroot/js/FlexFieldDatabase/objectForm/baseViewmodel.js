@@ -7,13 +7,14 @@
              * Object Form Base View Model
              * @param {string} rootPage Root Page
              * @param {string} apiControllerName Api Controller name
+             * @param {string} objectType Object Type Name
              * @param {string} lockName Name of the resource used for the lock for an object of this type
              * @param {string} templateLockName Name of the resource used for the lock for a template of this type
              * @param {string} kirjaApiMentionedMethod Method of the kirja api which is used to load the pages in which the object is mentioned
              * @param {string} kartaApiMentionedMethod Method of the karta api which is used to load the maps in which the object is mentioned
              * @class
              */
-            ObjectForm.BaseViewModel = function(rootPage, apiControllerName, lockName, templateLockName, kirjaApiMentionedMethod, kartaApiMarkedMethod)
+            ObjectForm.BaseViewModel = function(rootPage, apiControllerName, objectType, lockName, templateLockName, kirjaApiMentionedMethod, kartaApiMarkedMethod)
             {
                 GoNorth.FlexFieldDatabase.ObjectForm.FlexFieldHandlingViewModel.apply(this);
 
@@ -83,6 +84,8 @@
 
                 this.showConfirmRegenerateLanguageKeysDialog = new ko.observable(false);
 
+                this.showConfirmExportDirtyStateDialog = new ko.observable(false);
+                this.showConfirmExportDirtyStatePromise = null;
                 this.showExportResultDialog = new ko.observable(false);
                 this.exportResultContent = new ko.observable("");
                 this.exportResultErrors = new ko.observableArray();
@@ -104,10 +107,18 @@
                 this.referencedInTaleDialogs = new ko.observableArray();
                 this.loadingReferencedInTaleDialogs = new ko.observable(false);
                 this.errorLoadingReferencedInTaleDialogs = new ko.observable(false);
+                
+                this.referencedInDailyRoutines = new ko.observableArray();
+                this.loadingReferencedInDailyRoutines = new ko.observable(false);
+                this.errorLoadingReferencedInDailyRoutines = new ko.observable(false);
+                
+                this.exportSnippetManager = new ObjectForm.ExportSnippetManager(objectType, this.isImplemented);
 
                 this.errorOccured = new ko.observable(false);
                 this.additionalErrorDetails = new ko.observable("");
                 this.objectNotFound = new ko.observable(false);
+
+                this.lastSavedObjectState = null;
 
                 GoNorth.Util.setupValidation("#gn-objectFields");
 
@@ -174,6 +185,11 @@
                     if(GoNorth.FlexFieldDatabase.ObjectForm.hasTaleRights && !this.isTemplateMode())
                     {
                         this.loadTaleDialogs();
+                    } 
+
+                    if(GoNorth.FlexFieldDatabase.ObjectForm.hasKortistoRights && !this.isTemplateMode())
+                    {
+                        this.loadUsedInDailyRoutines();
                     } 
 
                     this.loadAdditionalDependencies();
@@ -286,11 +302,20 @@
                     }
 
                     self.objectTags(data.tags);
+
+                    self.saveLastObjectState();
                 }).fail(function(xhr) {
                     self.isLoading(false);
                     self.errorOccured(true);
                 });
             };
+
+            /**
+             * Saves the last saved object state from the current state
+             */
+            ObjectForm.BaseViewModel.prototype.saveLastObjectState = function() {
+                this.lastSavedObjectState = this.buildSaveRequestObject();
+            };   
 
             /**
              * Saves the form
@@ -305,19 +330,13 @@
             ObjectForm.BaseViewModel.prototype.saveAndDistributeFields = function() {
                 this.sendSaveRequest(true);
             };
-
+            
             /**
-             * Saves the form
+             * Builds the save request object
              * 
-             * @param {bool} distributeFields true if the fields should be distributed, else false
+             * @returns {object} Save request object
              */
-            ObjectForm.BaseViewModel.prototype.sendSaveRequest = function(distributeFields) {
-                if(!jQuery("#gn-objectFields").valid())
-                {
-                    return;
-                }
-
-                // Send Data
+            ObjectForm.BaseViewModel.prototype.buildSaveRequestObject = function() {
                 var serializedFields = this.fieldManager.serializeFields();
                 var requestObject = {
                     templateId: !this.isTemplateMode() ? this.templateId : "",
@@ -341,6 +360,23 @@
                         requestObject.thumbnailImageFile = this.thumbnailImageFilename();
                     }
                 }
+
+                return requestObject;
+            };
+
+            /**
+             * Saves the form
+             * 
+             * @param {bool} distributeFields true if the fields should be distributed, else false
+             */
+            ObjectForm.BaseViewModel.prototype.sendSaveRequest = function(distributeFields) {
+                if(!jQuery("#gn-objectFields").valid())
+                {
+                    return;
+                }
+
+                // Send Data
+                var requestObject = this.buildSaveRequestObject();
 
                 var url = "";
                 if(this.isTemplateMode())
@@ -409,9 +445,17 @@
                     self.runAfterSave(data);
 
                     self.callObjectGridRefresh();
+
+                    self.lastSavedObjectState = requestObject;
                 }).fail(function(xhr) {
                     self.isLoading(false);
                     self.errorOccured(true);
+
+                    // If object is related to anything that prevents deleting a bad request (400) will be returned
+                    if(xhr.status == 400 && xhr.responseText)
+                    {
+                        self.additionalErrorDetails(xhr.responseText);
+                    }
                 });
             };
 
@@ -423,6 +467,18 @@
             ObjectForm.BaseViewModel.prototype.runAfterSave = function(data) {
 
             };
+
+
+            /**
+             * Returns true if the form is dirty, else false
+             * 
+             * @returns {boolean} true if the form is dirty, else false
+             */
+            ObjectForm.BaseViewModel.prototype.isDirty = function() {
+                var objectState = this.buildSaveRequestObject();
+                return !GoNorth.Util.isEqual(objectState, this.lastSavedObjectState)
+            };
+
 
             /**
              * Distributes the fields
@@ -569,6 +625,62 @@
              * @param {string} exportFormat Format to export to (Script, JSON, Language)
              */
             ObjectForm.BaseViewModel.prototype.exportObject = function(templateType, exportFormat) {
+                if(this.isDirty())
+                {
+                    var self = this;
+                    this.openConfirmExportDirtyStateDialog().done(function() {
+                        self.openExportObjectDialog(templateType, exportFormat);
+                    });
+                    return;
+                }
+
+                this.openExportObjectDialog(templateType, exportFormat);
+            };
+
+            /**
+             * Opens the confirm export dirty state dialog
+             * 
+             * @param {number} templateType Type of the template
+             * @param {string} exportFormat Format to export to (Script, JSON, Language)
+             */
+            ObjectForm.BaseViewModel.prototype.openConfirmExportDirtyStateDialog = function() {
+                this.showConfirmExportDirtyStateDialog(true);
+                this.showConfirmExportDirtyStatePromise = new jQuery.Deferred();
+
+                return this.showConfirmExportDirtyStatePromise.promise();
+            };
+
+            /**
+             * Confirms the export dirty state dialog
+             */
+            ObjectForm.BaseViewModel.prototype.confirmExportDirtyStateDialog = function() {
+                this.showConfirmExportDirtyStateDialog(false);
+                if(this.showConfirmExportDirtyStatePromise)
+                {
+                    this.showConfirmExportDirtyStatePromise.resolve();
+                    this.showConfirmExportDirtyStatePromise = null;
+                }
+            };
+
+            /**
+             * Closes the export dirty state dialog
+             */
+            ObjectForm.BaseViewModel.prototype.closeConfirmExportDirtyStateDialog = function() {
+                this.showConfirmExportDirtyStateDialog(false);
+                if(this.showConfirmExportDirtyStatePromise)
+                {
+                    this.showConfirmExportDirtyStatePromise.reject();
+                    this.showConfirmExportDirtyStatePromise = null;
+                }
+            };
+
+            /**
+             * Opens the export object dialog
+             * 
+             * @param {number} templateType Type of the template
+             * @param {string} exportFormat Format to export to (Script, JSON, Language)
+             */
+            ObjectForm.BaseViewModel.prototype.openExportObjectDialog = function(templateType, exportFormat) {
                 this.exportResultFormat = exportFormat;
                 this.isLoading(true);
                 this.errorOccured(false);
@@ -580,12 +692,58 @@
                     self.isLoading(false);
                     self.showExportResultDialog(true);
                     self.exportResultContent(data.code);
-                    self.exportResultErrors(data.errors);
+                    self.exportResultErrors(self.groupExportErrors(data.errors));
                 }).fail(function(xhr) {
                     self.closeExportResultDialog();
                     self.errorOccured(true);
                     self.isLoading(false);
                 });
+            };
+
+            /**
+             * Groups the export errors by export context
+             * 
+             * @param {object[]} errors Errors to group
+             * @returns {object[]} Grouped errors
+             */
+            ObjectForm.BaseViewModel.prototype.groupExportErrors = function(errors) {
+                if(!errors) 
+                {
+                    return [];
+                }
+
+                var errorGroups = {};
+                var groupedErrors = [];
+                for(var curError = 0; curError < errors.length; ++curError)
+                {
+                    if(!errorGroups[errors[curError].errorContext])
+                    {
+                        var errorGroup = {
+                            contextName: errors[curError].errorContext,
+                            errors: []
+                        };
+                        errorGroups[errorGroup.contextName] = errorGroup;
+                        groupedErrors.push(errorGroup);
+                    }
+
+                    errorGroups[errors[curError].errorContext].errors.push(errors[curError]);
+                }
+
+                // Make sure errors with no contextname are shown first
+                groupedErrors = groupedErrors.sort(function(g1, g2) {
+                    if(!g1.contextName)
+                    {
+                        return -1;
+                    }
+                    else if(!g2.contextName)
+                    {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+
+                return groupedErrors;
             };
 
             /**
@@ -620,6 +778,16 @@
                     self.exportShowSuccessfullyCopiedTooltip(false);
                 }, 1000);
             };
+
+
+            /**
+             * Opens the code snippet dialog
+             * 
+             * @param {number} templateType Type of the template
+             */
+            ObjectForm.BaseViewModel.prototype.openCodeSnippetDialog = function(templateType) {
+                this.exportSnippetManager.openSnippetManagerDialog(this.id(), templateType);
+            }
 
 
             /**
@@ -827,6 +995,36 @@
              */
             ObjectForm.BaseViewModel.prototype.buildTaleDialogUrl = function(dialogNpc) {
                 return "/Tale?npcId=" + dialogNpc.id;
+            };
+
+
+            /**
+             * Loads the npcs in which the daily routines are used
+             */
+            ObjectForm.BaseViewModel.prototype.loadUsedInDailyRoutines = function() {
+                this.loadingReferencedInDailyRoutines(true);
+                this.errorLoadingReferencedInDailyRoutines(false);
+                var self = this;
+                jQuery.ajax({ 
+                    url: "/api/KortistoApi/GetNpcsObjectIsReferencedInDailyRoutine?objectId=" + this.id(), 
+                    type: "GET"
+                }).done(function(data) {
+                    self.referencedInDailyRoutines(data);
+                    self.loadingReferencedInDailyRoutines(false);
+                }).fail(function(xhr) {
+                    self.errorLoadingReferencedInDailyRoutines(true);
+                    self.loadingReferencedInDailyRoutines(false);
+                });
+            };
+
+            /**
+             * Builds the url for a Npcs
+             * 
+             * @param {object} npc Npc to build the url for
+             * @returns {string} Url for the npc
+             */
+            ObjectForm.BaseViewModel.prototype.buildDailyRoutineNpcUrl = function(npc) {
+                return "/Kortisto/Npc?id=" + npc.id;
             };
 
 

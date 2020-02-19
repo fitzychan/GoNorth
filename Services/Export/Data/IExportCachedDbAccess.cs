@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using GoNorth.Data.Aika;
 using GoNorth.Data.Evne;
 using GoNorth.Data.Exporting;
+using GoNorth.Data.Karta;
 using GoNorth.Data.Kortisto;
 using GoNorth.Data.Project;
+using GoNorth.Data.ProjectConfig;
 using GoNorth.Data.Styr;
 
 namespace GoNorth.Services.Export.Data
@@ -61,5 +64,25 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Quest</returns>
         Task<AikaQuest> GetQuestById(string questId);
 
+        /// <summary>
+        /// Returns a marker by its id
+        /// </summary>
+        /// <param name="mapId">Map Id</param>
+        /// <param name="markerId">Marker Id</param>
+        /// <returns>Marker</returns>
+        Task<KartaMapNamedMarkerQueryResult> GetMarkerById(string mapId, string markerId);
+
+        /// <summary>
+        /// Returns the misc project config
+        /// </summary>
+        /// <returns>Misc project config</returns>
+        Task<MiscProjectConfig> GetMiscProjectConfig();
+
+        /// <summary>
+        /// Returns the object export snippets of an object
+        /// </summary>
+        /// <param name="exportObjectId">Id of the Object for which the snippets must be loaded</param>
+        /// <returns>Object export snippets</returns>
+        Task<List<ObjectExportSnippet>> GetObjectExportSnippetsByObject(string exportObjectId);
     }
 }

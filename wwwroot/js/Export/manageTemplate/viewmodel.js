@@ -9,7 +9,7 @@
              */
             ManageTemplate.ViewModel = function()
             {
-                this.templateType = parseInt(GoNorth.Util.getParameterFromUrl("templateType"));
+                this.templateType = GoNorth.Util.getParameterFromUrl("templateType");
                 this.customizedObjectId = new ko.observable("");
                 var customizedObjectId = GoNorth.Util.getParameterFromUrl("customizedObjectId");
                 if(customizedObjectId)
@@ -41,6 +41,8 @@
 
                 this.customizedChildTemplates = new ko.observableArray();
 
+                this.objectWithInvalidSnippets = new ko.observableArray([]);
+
                 this.showConfirmTemplateDeleteDialog = new ko.observable(false);
 
                 this.isLoading = new ko.observable(false);
@@ -49,8 +51,9 @@
                 this.isReadonly = new ko.observable(false);
                 this.lockedByUser = new ko.observable("");
 
-                if(!isNaN(this.templateType))
+                if(this.templateType)
                 {
+                    this.loadInvalidSnippets();
                     this.loadTemplatePlaceholders();
                     this.initTemplateData();
                 }
@@ -175,6 +178,8 @@
                     }).done(function() {
                         self.customizedObjectTemplateIsDefault(false);
                         self.isLoading(false);
+
+                        self.loadInvalidSnippets();
                     }).fail(function() {
                         self.isLoading(false);
                         self.errorOccured(true);
@@ -290,6 +295,32 @@
                         targetUrl += "&template=1";
                     }
                     return targetUrl;
+                },
+
+
+                /**
+                 * Loads all invalid snippets based on the template
+                 */
+                loadInvalidSnippets: function() {
+                    if(!GoNorth.Export.ManageTemplate.templateTypeMapping[this.templateType])
+                    {
+                        return;
+                    }
+
+                    var url = "/api/ExportApi/GetObjectsWithInvalidSnippets?templateType=" + this.templateType;
+                    if(this.customizedObjectId())
+                    {
+                        url += "&id=" + this.customizedObjectId();
+                    }
+                    var self = this;
+                    jQuery.ajax({
+                        url: url,
+                        type: "GET"
+                    }).done(function(data) {
+                        self.objectWithInvalidSnippets(data);
+                    }).fail(function() {
+                        self.errorOccured(true);
+                    });
                 },
 
 

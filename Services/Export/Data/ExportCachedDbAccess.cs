@@ -3,9 +3,12 @@ using System.Threading.Tasks;
 using GoNorth.Data.Aika;
 using GoNorth.Data.Evne;
 using GoNorth.Data.Exporting;
+using GoNorth.Data.Karta;
 using GoNorth.Data.Kortisto;
 using GoNorth.Data.Project;
+using GoNorth.Data.ProjectConfig;
 using GoNorth.Data.Styr;
+using GoNorth.Services.ProjectConfig;
 
 namespace GoNorth.Services.Export.Data
 {
@@ -23,6 +26,11 @@ namespace GoNorth.Services.Export.Data
         /// Export Settings Db Access
         /// </summary>
         private readonly IExportSettingsDbAccess _exportSettingsDbAccess;
+
+        /// <summary>
+        /// Object Export Snippet Db Access
+        /// </summary>
+        private readonly IObjectExportSnippetDbAccess _objectExportSnippetDbAccess;
 
         /// <summary>
         /// Npc Db Access
@@ -43,11 +51,27 @@ namespace GoNorth.Services.Export.Data
         /// Quest Db Access
         /// </summary>
         private readonly IAikaQuestDbAccess _questDbAccess;
+        
+        /// <summary>
+        /// Map Db Access
+        /// </summary>
+        private readonly IKartaMapDbAccess _mapDbAccess;
+
+        /// <summary>
+        /// Project config provider
+        /// </summary>
+        private readonly IProjectConfigProvider _projectConfigProvider;
+
 
         /// <summary>
         /// Project
         /// </summary>
         private GoNorthProject _project;
+
+        /// <summary>
+        /// Misc Project config
+        /// </summary>
+        private MiscProjectConfig _miscProjectConfig;
 
         /// <summary>
         /// Cached Export Settings
@@ -80,22 +104,39 @@ namespace GoNorth.Services.Export.Data
         private Dictionary<string, AikaQuest> _cachedQuest;
 
         /// <summary>
+        /// Cached Markers
+        /// </summary>
+        private Dictionary<string, KartaMapNamedMarkerQueryResult> _cachedMarkers;
+        
+        /// <summary>
+        /// Cached Export snippets
+        /// </summary>
+        private Dictionary<string, List<ObjectExportSnippet>> _cachedExportSnippets;
+
+        /// <summary>
         /// Export Cached Db Access
         /// </summary>
         /// <param name="projectDbAccess">Project Db Access</param>
         /// <param name="exportSettingsDbAccess">Export Settings Db Access</param>
+        /// <param name="objectExportSnippetDbAccess">Object export snippet Db Access</param>
         /// <param name="npcDbAccess">Npc Db Access</param>
         /// <param name="itemDbAccess">Item Db Access</param>
         /// <param name="skillDbAccess">Skill Db Access</param>
         /// <param name="questDbAccess">Quest Db Access</param>
-        public ExportCachedDbAccess(IProjectDbAccess projectDbAccess, IExportSettingsDbAccess exportSettingsDbAccess, IKortistoNpcDbAccess npcDbAccess, IStyrItemDbAccess itemDbAccess, IEvneSkillDbAccess skillDbAccess, IAikaQuestDbAccess questDbAccess)
+        /// <param name="mapDbAccess">Map Db Access</param>
+        /// <param name="projectConfigProvider">Project config provider</param>
+        public ExportCachedDbAccess(IProjectDbAccess projectDbAccess, IExportSettingsDbAccess exportSettingsDbAccess, IObjectExportSnippetDbAccess objectExportSnippetDbAccess, IKortistoNpcDbAccess npcDbAccess, 
+                                    IStyrItemDbAccess itemDbAccess, IEvneSkillDbAccess skillDbAccess, IAikaQuestDbAccess questDbAccess, IKartaMapDbAccess mapDbAccess, IProjectConfigProvider projectConfigProvider)
         {
             _projectDbAccess = projectDbAccess;
             _exportSettingsDbAccess = exportSettingsDbAccess;
+            _objectExportSnippetDbAccess = objectExportSnippetDbAccess;
             _npcDbAccess = npcDbAccess;
             _itemDbAccess = itemDbAccess;
             _skillDbAccess = skillDbAccess;
             _questDbAccess = questDbAccess;
+            _mapDbAccess = mapDbAccess;
+            _projectConfigProvider = projectConfigProvider;
 
             _cachedExportSettings = new Dictionary<string, ExportSettings>();
             _cachedPlayerNpcs = new Dictionary<string, KortistoNpc>();
@@ -103,6 +144,8 @@ namespace GoNorth.Services.Export.Data
             _cachedItems = new Dictionary<string, StyrItem>();
             _cachedSkills = new Dictionary<string, EvneSkill>();
             _cachedQuest = new Dictionary<string, AikaQuest>();
+            _cachedMarkers = new Dictionary<string, KartaMapNamedMarkerQueryResult>();
+            _cachedExportSnippets = new Dictionary<string, List<ObjectExportSnippet>>();
         }
 
         /// <summary>
@@ -121,12 +164,33 @@ namespace GoNorth.Services.Export.Data
         }
 
         /// <summary>
+        /// Returns the misc project config
+        /// </summary>
+        /// <returns>Misc project config</returns>
+        public async Task<MiscProjectConfig> GetMiscProjectConfig()
+        {
+            if(_miscProjectConfig != null)
+            {
+                return _miscProjectConfig;
+            }
+
+            GoNorthProject defaultProject = await GetDefaultProject();
+            _miscProjectConfig = await _projectConfigProvider.GetMiscConfig(defaultProject.Id);
+            return _miscProjectConfig;
+        }
+
+        /// <summary>
         /// Returns the export settings for a project
         /// </summary>
         /// <param name="projectId">Project Id</param>
         /// <returns>Export Settings</returns>
         public async Task<ExportSettings> GetExportSettings(string projectId)
         {
+            if(string.IsNullOrEmpty(projectId))
+            {
+                return null;
+            }
+
             if(_cachedExportSettings.ContainsKey(projectId))
             {
                 return _cachedExportSettings[projectId];
@@ -144,6 +208,11 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Player npc</returns>
         public async Task<KortistoNpc> GetPlayerNpc(string projectId)
         {
+            if(string.IsNullOrEmpty(projectId))
+            {
+                return null;
+            }
+
             if(_cachedPlayerNpcs.ContainsKey(projectId))
             {
                 return _cachedPlayerNpcs[projectId];
@@ -162,6 +231,11 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Npc</returns>
         public async Task<KortistoNpc> GetNpcById(string npcId)
         {
+            if(string.IsNullOrEmpty(npcId))
+            {
+                return null;
+            }
+
             if(_cachedNpcs.ContainsKey(npcId))
             {
                 return _cachedNpcs[npcId];
@@ -181,6 +255,11 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Item</returns>
         public async Task<StyrItem> GetItemById(string itemId)
         {
+            if(string.IsNullOrEmpty(itemId))
+            {
+                return null;
+            }
+
             if(_cachedItems.ContainsKey(itemId))
             {
                 return _cachedItems[itemId];
@@ -198,6 +277,11 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Skill</returns>
         public async Task<EvneSkill> GetSkillById(string skillId)
         {
+            if(string.IsNullOrEmpty(skillId))
+            {
+                return null;
+            }
+
             if(_cachedSkills.ContainsKey(skillId))
             {
                 return _cachedSkills[skillId];
@@ -215,6 +299,11 @@ namespace GoNorth.Services.Export.Data
         /// <returns>Quest</returns>
         public async Task<AikaQuest> GetQuestById(string questId)
         {
+            if(string.IsNullOrEmpty(questId))
+            {
+                return null;
+            }
+
             if(_cachedQuest.ContainsKey(questId))
             {
                 return _cachedQuest[questId];
@@ -224,5 +313,52 @@ namespace GoNorth.Services.Export.Data
             _cachedQuest.Add(questId, quest);
             return quest;    
         }
+
+        /// <summary>
+        /// Returns a marker by its id
+        /// </summary>
+        /// <param name="mapId">Map Id</param>
+        /// <param name="markerId">Marker Id</param>
+        /// <returns>Marker</returns>
+        public async Task<KartaMapNamedMarkerQueryResult> GetMarkerById(string mapId, string markerId)
+        {
+            if(string.IsNullOrEmpty(mapId) || string.IsNullOrEmpty(markerId))
+            {
+                return null;
+            }
+
+            string cacheId = mapId + "|" + markerId;
+            if(_cachedMarkers.ContainsKey(cacheId))
+            {
+                return _cachedMarkers[cacheId];
+            }
+
+            KartaMapNamedMarkerQueryResult markerQueryResult = await _mapDbAccess.GetMarkerById(mapId, markerId);
+            _cachedMarkers.Add(cacheId, markerQueryResult);
+            return markerQueryResult;   
+        }
+
+        /// <summary>
+        /// Returns the object export snippets of an object
+        /// </summary>
+        /// <param name="exportObjectId">Id of the Object for which the snippets must be loaded</param>
+        /// <returns>Object export snippets</returns>
+        public async Task<List<ObjectExportSnippet>> GetObjectExportSnippetsByObject(string exportObjectId)
+        {
+            if(string.IsNullOrEmpty(exportObjectId))
+            {
+                return new List<ObjectExportSnippet>();
+            }
+
+            if(_cachedExportSnippets.ContainsKey(exportObjectId))
+            {
+                return _cachedExportSnippets[exportObjectId];
+            }
+
+            List<ObjectExportSnippet> exportSnippets = await _objectExportSnippetDbAccess.GetExportSnippets(exportObjectId);
+            _cachedExportSnippets.Add(exportObjectId, exportSnippets);
+            return exportSnippets;
+        }
+
     }
 }

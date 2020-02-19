@@ -131,6 +131,10 @@
                 };
 
                 this.nodeModel.set("actionData", JSON.stringify(serializeData));
+
+                // Set related object data
+                this.nodeModel.set("actionRelatedToObjectType", GoNorth.DefaultNodeShapes.Actions.RelatedToObjectQuest);
+                this.nodeModel.set("actionRelatedToObjectId", questId);
             }
 
             /**
@@ -196,7 +200,6 @@
             Actions.AddQuestTextAction.prototype.loadObject = function(questId) {
                 var def = new jQuery.Deferred();
 
-                var self = this;
                 jQuery.ajax({ 
                     url: "/api/AikaApi/GetQuest?id=" + questId, 
                     type: "GET"

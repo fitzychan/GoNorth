@@ -105,7 +105,7 @@
     </div>
 
     <!-- Create / Edit Dialog -->
-    <div class="modal fade" role="dialog" data-bind="modal: showBoardCreateEditDialog">
+    <div class="modal fade" role="dialog" data-bind="modal: showBoardCreateEditDialog" id="gn-taskManageBoardsNewBoardDialog">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -131,7 +131,7 @@
                         <div class="form-group">
                             <label for="gn-boardPlannedStart">@Localizer["PlannedStart"]</label>
                             <input type="text" class="form-control" id="gn-boardPlannedStart" placeholder="@Localizer["PlannedStart"]" name="boardPlannedStart" data-bind="dateTimePicker: createEditBoardPlannedStart"/>
-                            <div class="text-danger" data-bind="visible: showDateValidationError" style="display: none">@Localizer["StartDateHasToBeBeforeEndDate"]</div>
+                            <div class="gn-textDanger" data-bind="visible: showDateValidationError" style="display: none">@Localizer["StartDateHasToBeBeforeEndDate"]</div>
                         </div>
                         <div class="form-group">
                             <label for="gn-boardPlannedEnd">@Localizer["PlannedEnd"]</label>
@@ -262,7 +262,7 @@
     </script>
 
     <!-- Command Buttons -->
-    <button type="button" class="btn btn-primary gn-commandWidgetTopMargin" data-bind="click: openNewBoardDialog, disable: isLoading()">
+    <button type="button" class="btn btn-primary gn-commandWidgetTopMargin" data-bind="click: openNewBoardDialog, disable: isLoading()" id="gn-taskManageBoardsNewBoardButton">
         <i class="glyphicon glyphicon-plus" data-bind="visible: !isLoading()"></i><i class="glyphicon glyphicon-refresh spinning" style="display: none" data-bind="visible: isLoading"></i> @Localizer["CreateNewBoard"]
     </button>
 

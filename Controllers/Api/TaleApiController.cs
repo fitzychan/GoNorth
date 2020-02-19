@@ -8,22 +8,22 @@ using Microsoft.AspNetCore.Identity;
 using GoNorth.Data.User;
 using GoNorth.Data.Tale;
 using System.Collections.Generic;
-using System.Net;
 using GoNorth.Data.NodeGraph;
 using GoNorth.Extensions;
 using GoNorth.Data.Project;
 using System.Linq;
 using GoNorth.Services.ImplementationStatusCompare;
-using System.IO;
+using Microsoft.AspNetCore.Http;
 
 namespace GoNorth.Controllers.Api
 {
     /// <summary>
     /// Tale Api controller
     /// </summary>
+    [ApiController]
     [Authorize(Roles = RoleNames.Tale)]
     [Route("/api/[controller]/[action]")]
-    public class TaleApiController : Controller
+    public class TaleApiController : ControllerBase
     {
         /// <summary>
         /// Dialog Query Result object, includes npc names
@@ -85,11 +85,6 @@ namespace GoNorth.Controllers.Api
         private readonly ITaleDbAccess _taleDbAccess;
 
         /// <summary>
-        /// Tale Config Db Access
-        /// </summary>
-        private readonly ITaleConfigDbAccess _taleConfigDbAccess;
-
-        /// <summary>
         /// Tale Db Service
         /// </summary>
         private readonly IKortistoNpcDbAccess _npcDbAccess;
@@ -123,18 +118,16 @@ namespace GoNorth.Controllers.Api
         /// Constructor
         /// </summary>
         /// <param name="taleDbAccess">Tale Db Access</param>
-        /// <param name="taleConfigDbAccess">Tale config Db Access</param>
         /// <param name="npcDbAccess">Npc Db Access</param>
         /// <param name="projectDbAccess">Project Db Access</param>
         /// <param name="userManager">User Manager</param>
         /// <param name="implementationStatusComparer">Implementation status comparer</param>
         /// <param name="timelineService">Timeline Service</param>
         /// <param name="logger">Logger</param>
-        public TaleApiController(ITaleDbAccess taleDbAccess, ITaleConfigDbAccess taleConfigDbAccess, IKortistoNpcDbAccess npcDbAccess, IProjectDbAccess projectDbAccess, UserManager<GoNorthUser> userManager, 
+        public TaleApiController(ITaleDbAccess taleDbAccess, IKortistoNpcDbAccess npcDbAccess, IProjectDbAccess projectDbAccess, UserManager<GoNorthUser> userManager, 
                                  IImplementationStatusComparer implementationStatusComparer, ITimelineService timelineService, ILogger<TaleApiController> logger)
         {
             _taleDbAccess = taleDbAccess;
-            _taleConfigDbAccess = taleConfigDbAccess;
             _npcDbAccess = npcDbAccess;
             _projectDbAccess = projectDbAccess;
             _userManager = userManager;
@@ -149,6 +142,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="relatedObjectId">Related object id</param>
         /// <returns>Dialog</returns>
         [Produces(typeof(TaleDialog))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> GetDialogByRelatedObjectId(string relatedObjectId)
         {
@@ -162,6 +156,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="relatedObjectId">Related object id</param>
         /// <returns>Dialog Implemented state</returns>
         [Produces(typeof(DialogImplementedResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [Authorize(Roles = RoleNames.Tale)]
         [HttpGet]
@@ -185,6 +180,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="objectId">Object id</param>
         /// <returns>Dialogs</returns>
         [Produces(typeof(List<TaleDialog>))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> GetDialogsObjectIsReferenced(string objectId)
         {
@@ -199,6 +195,8 @@ namespace GoNorth.Controllers.Api
         /// <param name="dialog">Dialog Data to save</param>
         /// <returns>Dialog</returns>
         [Produces(typeof(TaleDialog))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ValidateAntiForgeryToken]
         [HttpPost]
         public async Task<IActionResult> SaveDialog(string relatedObjectId, [FromBody]TaleDialog dialog)
@@ -206,13 +204,13 @@ namespace GoNorth.Controllers.Api
             // Validate data
             if(string.IsNullOrEmpty(relatedObjectId))
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
 
             List<KortistoNpc> npcNames = await _npcDbAccess.ResolveFlexFieldObjectNames(new List<string> { relatedObjectId });
             if(npcNames.Count == 0)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest);
+                return BadRequest();
             }
             string npcName = npcNames[0].Name;
 
@@ -271,6 +269,7 @@ namespace GoNorth.Controllers.Api
         /// <param name="pageSize">Page Size</param>
         /// <returns>Items</returns>
         [Produces(typeof(DialogQueryResult))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [Authorize(Roles = RoleNames.Tale)]
         [Authorize(Roles = RoleNames.ImplementationStatusTracker)]
         [HttpGet]
@@ -294,68 +293,6 @@ namespace GoNorth.Controllers.Api
             }).ToList();
             queryResult.HasMore = start + queryResult.Dialogs.Count < countTask.Result;
             return Ok(queryResult);
-        }
-
-
-        /// <summary>
-        /// Returns a config entry by key
-        /// </summary>
-        /// <param name="configKey">Config key</param>
-        /// <returns>Config entry</returns>
-        [Produces(typeof(string))]
-        [HttpGet]
-        public async Task<IActionResult> GetNodeConfigByKey(string configKey)
-        {
-            GoNorthProject project = await _projectDbAccess.GetDefaultProject();
-            TaleConfigEntry configEntry = await _taleConfigDbAccess.GetConfigByKey(project.Id, configKey);
-            if(configEntry != null)
-            {
-                return Ok(configEntry.ConfigData);
-            }
-            else
-            {
-                return Ok(string.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Saves a config entry
-        /// </summary>
-        /// <param name="configKey">Config key</param>
-        /// <returns>Save result</returns>
-        [Authorize(Roles = RoleNames.TaleConfigManager)]
-        [Produces(typeof(string))]
-        [HttpPost]
-        public async Task<IActionResult> SaveNodeConfigByKey(string configKey)
-        {
-            string configData = string.Empty;
-            using (StreamReader reader = new StreamReader(Request.Body))
-            {
-                configData = reader.ReadToEnd();
-            }
-
-            GoNorthProject project = await _projectDbAccess.GetDefaultProject();
-            TaleConfigEntry configEntry = await _taleConfigDbAccess.GetConfigByKey(project.Id, configKey);
-            if(configEntry != null)
-            {
-                await this.SetModifiedData(_userManager, configEntry);
-                configEntry.ConfigData = configData;
-
-                await _taleConfigDbAccess.UpdateConfig(configEntry);
-            }
-            else
-            {
-                configEntry = new TaleConfigEntry();
-                configEntry.ProjectId = project.Id;
-                configEntry.Key = configKey;
-                configEntry.ConfigData = configData;
-                
-                await this.SetModifiedData(_userManager, configEntry);
-                
-                await _taleConfigDbAccess.CreateConfig(configEntry);
-            }
-
-            return Ok(configKey);
         }
     }
 }

@@ -8,15 +8,37 @@
              * Modal Binding Handler
              */
             ko.bindingHandlers.modal = {
-                init: function (element, valueAccessor) {
+                init: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
                     jQuery(element).modal({
                         show: false
                     });
+
+                    var beforeCloseCallback = null;
+                    if(allBindings.get("modalBeforeClose"))
+                    {
+                        beforeCloseCallback = allBindings.get("modalBeforeClose");
+                    }
             
                     var value = valueAccessor();
                     if (ko.isObservable(value)) {
-                        jQuery(element).on("hide.bs.modal", function() {
-                            value(false);
+                        jQuery(element).on("hide.bs.modal", function(e) {
+                            var shouldClose = true;
+                            if(beforeCloseCallback)
+                            {
+                                shouldClose = beforeCloseCallback.apply(bindingContext.$data);
+                            }
+
+                            if(shouldClose)
+                            {
+                                value(false);
+                            }
+                            else
+                            {
+                                value(true);
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                return false;
+                            }
                         });
                     }
 
@@ -112,6 +134,12 @@
                         }
                     }
 
+                    if(allBindings.get("richTextImageUploadStarted"))
+                    {
+                        var uploadStartCallback = allBindings.get("richTextImageUploadStarted");
+                        options.fileUploadStarted = function() { uploadStartCallback.apply(bindingContext.$data); }
+                    }
+
                     if(allBindings.get("richTextAddditionalImageUploadError"))
                     {
                         var uploadErrorCallback = allBindings.get("richTextAddditionalImageUploadError");
@@ -159,6 +187,50 @@
                         if(jQuery(element).val())
                         {
                             parsedValue = parseFloat(jQuery(element).val());
+                        }
+                        if(!isNaN(parsedValue))
+                        {
+                            value(parsedValue);
+                        }
+                        else
+                        {
+                            value(0.0);
+                        }
+                    });
+                },
+                update: function (element, valueAccessor) {
+                    var value = valueAccessor();
+                    if(ko.isObservable(value))
+                    {
+                        jQuery(element).val(value());
+                    }
+                    else
+                    {
+                        jQuery(element).val(value);
+                    }
+                }
+            };
+
+            /**
+             * Integer Binding Handler
+             */
+            ko.bindingHandlers.integer = {
+                init: function (element, valueAccessor) {
+                    var value = valueAccessor();
+                    if (!ko.isObservable(value)) {
+                        jQuery(element).val(value);
+                        return;
+                    }
+
+                    jQuery(element).keydown(function(e) {
+                        GoNorth.Util.validatePositiveIntegerKeyPress(element, e);
+                    });
+
+                    jQuery(element).change(function() {
+                        var parsedValue = 0.0;
+                        if(jQuery(element).val())
+                        {
+                            parsedValue = parseInt(jQuery(element).val());
                         }
                         if(!isNaN(parsedValue))
                         {
@@ -498,7 +570,7 @@
              * Draggable Binding Handler
              */
             ko.bindingHandlers.draggableElement = {
-                init: function (element, valueAccessor, allBindings) {
+                init: function (element, valueAccessor, allBindings, viewModel, bindingContext) {
                     var helper = valueAccessor();
                     if(ko.isObservable(helper))
                     {
@@ -518,19 +590,27 @@
                     var draggableRevertDuration  = allBindings.get("draggableRevertDuration");
                     if(typeof draggableRevertDuration != "undefined")
                     {
-                        draggableOptions.revertDuration  = draggableRevertDuration;
+                        draggableOptions.revertDuration = draggableRevertDuration;
                     }
 
                     var draggableZIndex  = allBindings.get("draggableZIndex");
                     if(typeof draggableZIndex != "undefined")
                     {
-                        draggableOptions.zIndex   = draggableZIndex;
+                        draggableOptions.zIndex = draggableZIndex;
+                    }
+
+                    var draggableDistance  = allBindings.get("draggableDistance");
+                    if(typeof draggableDistance != "undefined")
+                    {
+                        draggableOptions.distance = draggableDistance;
                     }
 
                     var draggableObject = allBindings.get("draggableObject");
                     var dropableIndiciators = allBindings.get("draggableDropIndicators");
-                    if(draggableObject || dropableIndiciators) {
-                        draggableOptions.start = function() {
+                    var draggableOnStart = allBindings.get("draggableOnStart");
+                    var draggableOnStop = allBindings.get("draggableOnStop");
+                    if(draggableObject || dropableIndiciators || draggableOnStart) {
+                        draggableOptions.start = function(event, ui) {
                             currentDraggableObject = draggableObject ? draggableObject : null;
 
                             if(dropableIndiciators)
@@ -539,8 +619,16 @@
                                     jQuery(searchSelector).addClass(addClass);
                                 });
                             }
+
+                            if(draggableOnStart)
+                            {                            
+                                draggableOnStart.apply(bindingContext.$data, [ bindingContext.$data, event, ui ]);
+                            }
                         };
-                        draggableOptions.stop = function() {
+                    }
+                    
+                    if(draggableObject || dropableIndiciators || draggableOnStop) {
+                        draggableOptions.stop = function(event, ui) {
                             currentDraggableObject = null;
 
                             if(dropableIndiciators)
@@ -548,6 +636,11 @@
                                 jQuery.each(dropableIndiciators, function(searchSelector, addClass) {
                                     jQuery(searchSelector).removeClass(addClass);
                                 });
+                            }
+
+                            if(draggableOnStop)
+                            {                            
+                                draggableOnStop.apply(bindingContext.$data, [ bindingContext.$data, event, ui ]);
                             }
                         };
                     }
